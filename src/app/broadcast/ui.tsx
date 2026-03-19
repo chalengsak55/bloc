@@ -14,6 +14,7 @@ export function BroadcastComposer() {
   const [sentence, setSentence] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
 
   // On mount: restore draft. If session + pending sentence exist together
   // (i.e. user just returned from auth), auto-submit immediately.
@@ -52,8 +53,9 @@ export function BroadcastComposer() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        // Save draft then hand off to the auth page — it redirects back here after sign-in
         try { localStorage.setItem(PENDING_KEY, sentence.trim()); } catch { /* ignore */ }
+        setToast("Saving your request… Sign in to send it.");
+        await new Promise((r) => setTimeout(r, 1500));
         router.push("/auth?redirect=/broadcast");
         return;
       }
@@ -141,6 +143,15 @@ export function BroadcastComposer() {
         </div>
 
       </div>
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed inset-x-0 bottom-10 flex justify-center px-5 pointer-events-none">
+          <div className="rounded-full border border-white/10 bg-zinc-900/90 px-5 py-3 text-sm text-zinc-200 shadow-xl backdrop-blur-md animate-fade-in">
+            {toast}
+          </div>
+        </div>
+      )}
     </main>
   );
 }
