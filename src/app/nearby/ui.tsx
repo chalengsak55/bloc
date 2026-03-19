@@ -37,7 +37,7 @@ const FILTERS = [
 const TABS = [
   { label: "Home", icon: HomeIcon, href: "/" },
   { label: "Nearby", icon: MapIcon, href: "/nearby" },
-  { label: "Broadcast", icon: null, href: "/buyer" },
+  { label: "Broadcast", icon: null, href: "/broadcast" },
   { label: "Inbox", icon: InboxIcon, href: "#" },
   { label: "Profile", icon: ProfileIcon, href: "#" },
 ];
@@ -164,7 +164,7 @@ function Ticker({ items }: { items: TickerItem[] }) {
 
 function BroadcastFAB() {
   return (
-    <Link href="/buyer" className="relative -mt-6 flex flex-col items-center">
+    <Link href="/broadcast" className="relative -mt-6 flex flex-col items-center">
       {/* Ripple rings */}
       <span
         className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-40"
