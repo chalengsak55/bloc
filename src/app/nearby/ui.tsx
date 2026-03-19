@@ -39,7 +39,7 @@ const TABS = [
   { label: "Home", icon: HomeIcon, href: "/" },
   { label: "Nearby", icon: MapIcon, href: "/nearby" },
   { label: "Broadcast", icon: null, href: "/broadcast" },
-  { label: "Inbox", icon: InboxIcon, href: "#" },
+  { label: "Inbox", icon: InboxIcon, href: "/inbox" },
   { label: "Profile", icon: ProfileIcon, href: "#" },
 ];
 
