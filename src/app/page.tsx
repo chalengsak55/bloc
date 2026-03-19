@@ -9,13 +9,13 @@ export default function Home() {
         {/* ── Logo ─────────────────────────────────────────────────────── */}
         <div>
           <h1
-            className="text-5xl tracking-tight"
+            className="text-7xl tracking-tight"
             style={{
               fontFamily: "var(--font-instrument-serif), Georgia, serif",
-              background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
+              background: 'linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              backgroundClip: 'text',
             }}
           >
             Bloc.
@@ -127,7 +127,10 @@ export default function Home() {
         </div>
 
         {/* ── Footer ────────────────────────────────────────────────────── */}
-        <p className="text-center text-xs text-zinc-600">
+        <p
+          className="text-center text-2xl font-bold text-white"
+          style={{ fontFamily: "var(--font-dm-sans), ui-sans-serif, sans-serif" }}
+        >
           Quality wins. Not ad budget.
         </p>
       </div>
