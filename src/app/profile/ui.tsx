@@ -132,7 +132,7 @@ export function BuyerProfile() {
           .from("profiles")
           .select("display_name, avatar_url")
           .eq("id", user.id)
-          .single(),
+          .maybeSingle(),
         supabase
           .from("requests")
           .select("id, sentence, status, created_at")
@@ -143,11 +143,12 @@ export function BuyerProfile() {
 
       if (canceled) return;
 
-      if (profile) {
+      if (profile !== null) {
+        // Profile row exists — use it as the sole source of truth
         setDisplayName(profile.display_name ?? "");
         setAvatarUrl(profile.avatar_url ?? null);
       } else {
-        // Fallback to OAuth metadata for new users
+        // No profile row yet — seed display name from OAuth metadata only
         setDisplayName((user.user_metadata?.full_name as string) ?? "");
       }
 
