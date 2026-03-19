@@ -109,7 +109,7 @@ to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
--- Requests: buyers can create/read their own. Sellers can read open requests.
+-- Requests: buyers can create/read/update/delete their own. Sellers can read open requests.
 drop policy if exists "requests_insert_buyer" on public.requests;
 create policy "requests_insert_buyer"
 on public.requests for insert
@@ -119,6 +119,19 @@ with check (auth.uid() = buyer_id);
 drop policy if exists "requests_read_buyer" on public.requests;
 create policy "requests_read_buyer"
 on public.requests for select
+to authenticated
+using (auth.uid() = buyer_id);
+
+drop policy if exists "requests_update_buyer" on public.requests;
+create policy "requests_update_buyer"
+on public.requests for update
+to authenticated
+using (auth.uid() = buyer_id)
+with check (auth.uid() = buyer_id);
+
+drop policy if exists "requests_delete_buyer" on public.requests;
+create policy "requests_delete_buyer"
+on public.requests for delete
 to authenticated
 using (auth.uid() = buyer_id);
 

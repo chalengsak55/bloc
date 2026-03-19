@@ -112,6 +112,7 @@ export function BuyerProfile() {
   const [pastOpen, setPastOpen] = useState(false);
   const [canceling, setCanceling] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
+  const [actionError, setActionError] = useState<string | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -149,30 +150,45 @@ export function BuyerProfile() {
   }
 
   async function handleCancel(id: string) {
+    setActionError(null);
     setCanceling((prev) => new Set(prev).add(id));
     try {
-      const res = await fetch(`/api/requests/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: "closed" }),
-      });
-      if (res.ok) {
+      const { error } = await supabase
+        .from("requests")
+        .update({ status: "closed" })
+        .eq("id", id);
+      if (error) {
+        setActionError(`Cancel failed: ${error.message}`);
+      } else {
         setBroadcasts((prev) =>
           prev.map((b) => (b.id === id ? { ...b, status: "closed" } : b)),
         );
+        setPastOpen(true); // auto-expand Past so user sees the cancelled item
       }
+    } catch (e) {
+      setActionError("Cancel failed. Please try again.");
+      console.error("handleCancel error:", e);
     } finally {
       setCanceling((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
   }
 
   async function handleDelete(id: string) {
+    setActionError(null);
     setDeleting((prev) => new Set(prev).add(id));
     try {
-      const res = await fetch(`/api/requests/${id}`, { method: "DELETE" });
-      if (res.ok) {
+      const { error } = await supabase
+        .from("requests")
+        .delete()
+        .eq("id", id);
+      if (error) {
+        setActionError(`Delete failed: ${error.message}`);
+      } else {
         setBroadcasts((prev) => prev.filter((b) => b.id !== id));
       }
+    } catch (e) {
+      setActionError("Delete failed. Please try again.");
+      console.error("handleDelete error:", e);
     } finally {
       setDeleting((prev) => { const s = new Set(prev); s.delete(id); return s; });
     }
@@ -209,6 +225,14 @@ export function BuyerProfile() {
         </div>
 
         <div className="mx-auto w-full max-w-xl flex-1 space-y-6 px-4 pt-6">
+
+          {/* Error banner */}
+          {actionError && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3">
+              <p className="text-sm text-red-400">{actionError}</p>
+              <button onClick={() => setActionError(null)} className="text-red-500/60 hover:text-red-400">✕</button>
+            </div>
+          )}
 
           {/* Identity card */}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
