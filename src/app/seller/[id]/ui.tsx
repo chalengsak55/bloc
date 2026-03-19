@@ -86,12 +86,10 @@ function MessageButton({ seller }: { seller: SellerProfile }) {
       return;
     }
 
-    // Pass the draft via URL param so broadcast populates the textarea
-    // without triggering the post-auth auto-submit (which uses localStorage).
     const name = seller.display_name ?? "this seller";
     const cat = seller.category ? ` with ${seller.category}` : "";
     const draft = encodeURIComponent(`Hi ${name}, I need help${cat}`);
-    router.push(`/broadcast?draft=${draft}`);
+    router.push(`/message/${seller.id}?draft=${draft}`);
   }
 
   return (
