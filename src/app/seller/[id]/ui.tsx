@@ -89,8 +89,8 @@ function MessageButton({ seller }: { seller: SellerProfile }) {
     // Pre-fill the broadcast with seller context so the buyer has a starting point
     try {
       const name = seller.display_name ?? "this seller";
-      const cat = seller.category ? ` for ${seller.category}` : "";
-      localStorage.setItem("bloc_pending_sentence", `Hi ${name}, I'm looking${cat}`);
+      const cat = seller.category ? ` with ${seller.category}` : "";
+      localStorage.setItem("bloc_pending_sentence", `Hi ${name}, I need help${cat}`);
     } catch { /* ignore */ }
 
     router.push("/broadcast");
