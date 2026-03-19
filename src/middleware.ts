@@ -30,9 +30,12 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  // Phase 3: server-side guard — /seller/* requires an active session
+  // Phase 3: server-side guard — seller management routes require an active session.
+  // /seller/[id] (public storefronts) is intentionally excluded.
   const { pathname } = request.nextUrl;
-  if (pathname.startsWith("/seller") && !user) {
+  const isProtectedSeller =
+    pathname.startsWith("/seller/dashboard") || pathname.startsWith("/seller/onboard");
+  if (isProtectedSeller && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/auth";
     loginUrl.searchParams.set("redirect", pathname);

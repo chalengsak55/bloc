@@ -240,20 +240,8 @@ export function NearbyGrid() {
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function handleMessage(seller: Seller) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      router.push("/auth?redirect=/nearby");
-      return;
-    }
-    // Seed the broadcast textarea with the seller's name so the buyer has context
-    try {
-      localStorage.setItem(
-        "bloc_pending_sentence",
-        `Message for ${seller.display_name ?? "seller"}${seller.category ? ` (${seller.category})` : ""}`,
-      );
-    } catch { /* ignore */ }
-    router.push("/broadcast");
+  function handleMessage(seller: Seller) {
+    router.push(`/seller/${seller.id}`);
   }
 
   // Geolocation
