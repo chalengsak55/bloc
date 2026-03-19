@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
@@ -10,6 +10,7 @@ const PENDING_KEY = "bloc_pending_sentence";
 export function BroadcastComposer() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const [sentence, setSentence] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,9 +19,16 @@ export function BroadcastComposer() {
 
   // On mount: restore draft. If session + pending sentence exist together
   // (i.e. user just returned from auth), auto-submit immediately.
+  // ?draft= param seeds the textarea without auto-submitting (used by storefront).
   useEffect(() => {
     async function init() {
       try {
+        const draft = searchParams.get("draft");
+        if (draft) {
+          setSentence(draft);
+          return; // URL draft → just populate, never auto-submit
+        }
+
         const pending = localStorage.getItem(PENDING_KEY);
         if (pending) setSentence(pending);
 

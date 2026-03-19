@@ -86,14 +86,12 @@ function MessageButton({ seller }: { seller: SellerProfile }) {
       return;
     }
 
-    // Pre-fill the broadcast with seller context so the buyer has a starting point
-    try {
-      const name = seller.display_name ?? "this seller";
-      const cat = seller.category ? ` with ${seller.category}` : "";
-      localStorage.setItem("bloc_pending_sentence", `Hi ${name}, I need help${cat}`);
-    } catch { /* ignore */ }
-
-    router.push("/broadcast");
+    // Pass the draft via URL param so broadcast populates the textarea
+    // without triggering the post-auth auto-submit (which uses localStorage).
+    const name = seller.display_name ?? "this seller";
+    const cat = seller.category ? ` with ${seller.category}` : "";
+    const draft = encodeURIComponent(`Hi ${name}, I need help${cat}`);
+    router.push(`/broadcast?draft=${draft}`);
   }
 
   return (
