@@ -7,19 +7,16 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const PENDING_KEY = "bloc_pending_sentence";
 
-type Step = "compose" | "email" | "sent";
-
 export function BroadcastComposer() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
 
   const [sentence, setSentence] = useState("");
-  const [email, setEmail] = useState("");
-  const [step, setStep] = useState<Step>("compose");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Restore draft + auto-submit if returning from auth with a pending sentence
+  // On mount: restore draft. If session + pending sentence exist together
+  // (i.e. user just returned from auth), auto-submit immediately.
   useEffect(() => {
     async function init() {
       try {
@@ -55,32 +52,14 @@ export function BroadcastComposer() {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        // Save draft then hand off to the auth page — it redirects back here after sign-in
         try { localStorage.setItem(PENDING_KEY, sentence.trim()); } catch { /* ignore */ }
-        setBusy(false);
-        setStep("email");
+        router.push("/auth?redirect=/broadcast");
         return;
       }
       await submitRequest(user.id, sentence.trim());
     } catch {
       setError("Something went wrong. Please try again.");
-      setBusy(false);
-    }
-  }
-
-  async function handleEmailSubmit() {
-    if (!email.trim()) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const { error: authErr } = await supabase.auth.signInWithOtp({
-        email: email.trim(),
-        options: { shouldCreateUser: true, emailRedirectTo: `${location.origin}/broadcast` },
-      });
-      if (authErr) throw authErr;
-      setStep("sent");
-    } catch {
-      setError("Couldn't send magic link. Check your email address.");
-    } finally {
       setBusy(false);
     }
   }
@@ -119,131 +98,47 @@ export function BroadcastComposer() {
           </p>
         </div>
 
-        {/* ── Step: Compose ─────────────────────────────────────────────── */}
-        {step === "compose" && (
-          <div className="space-y-4">
-            <textarea
-              value={sentence}
-              onChange={(e) => setSentence(e.target.value)}
-              placeholder={'e.g. "Haircut in SoHo under $60 today at 5pm"'}
-              rows={4}
-              disabled={busy}
-              className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition focus:border-[#7c5ce8]/60 focus:ring-2 focus:ring-[#7c5ce8]/20 disabled:opacity-50"
-              style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleBroadcast();
-              }}
-            />
+        {/* Compose */}
+        <div className="space-y-4">
+          <textarea
+            value={sentence}
+            onChange={(e) => setSentence(e.target.value)}
+            placeholder={'e.g. "Haircut in SoHo under $60 today at 5pm"'}
+            rows={4}
+            disabled={busy}
+            className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition focus:border-[#7c5ce8]/60 focus:ring-2 focus:ring-[#7c5ce8]/20 disabled:opacity-50"
+            style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleBroadcast();
+            }}
+          />
 
-            <button
-              onClick={handleBroadcast}
-              disabled={busy || sentence.trim().length < 3}
-              className="relative w-full overflow-hidden rounded-2xl py-4 text-base font-semibold text-white transition-opacity disabled:opacity-40"
-              style={{
-                background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
-                fontFamily: "var(--font-dm-sans), sans-serif",
-              }}
-            >
-              {busy ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Broadcasting…
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  Broadcast
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
-                  </svg>
-                </span>
-              )}
-            </button>
+          <button
+            onClick={handleBroadcast}
+            disabled={busy || sentence.trim().length < 3}
+            className="relative w-full overflow-hidden rounded-2xl py-4 text-base font-semibold text-white transition-opacity disabled:opacity-40"
+            style={{
+              background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
+              fontFamily: "var(--font-dm-sans), sans-serif",
+            }}
+          >
+            {busy ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Broadcasting…
+              </span>
+            ) : (
+              <span className="flex items-center justify-center gap-2">
+                Broadcast
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5-5 5M6 12h12" />
+                </svg>
+              </span>
+            )}
+          </button>
 
-            {error && <p className="text-xs text-red-400">{error}</p>}
-          </div>
-        )}
-
-        {/* ── Step: Email gate ──────────────────────────────────────────── */}
-        {step === "email" && (
-          <div className="space-y-4">
-            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-              <p className="text-xs text-zinc-500">Your request</p>
-              <p className="mt-1 text-sm text-zinc-200">{sentence}</p>
-            </div>
-
-            <div>
-              <p className="mb-3 text-sm text-zinc-300">
-                Enter your email to track this request.
-              </p>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="your@email.com"
-                disabled={busy}
-                autoFocus
-                className="w-full rounded-2xl border border-white/10 bg-white/[0.05] px-4 py-3.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition focus:border-[#7c5ce8]/60 focus:ring-2 focus:ring-[#7c5ce8]/20 disabled:opacity-50"
-                style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
-                onKeyDown={(e) => { if (e.key === "Enter") handleEmailSubmit(); }}
-              />
-            </div>
-
-            <button
-              onClick={handleEmailSubmit}
-              disabled={busy || !email.trim()}
-              className="relative w-full overflow-hidden rounded-2xl py-4 text-base font-semibold text-white transition-opacity disabled:opacity-40"
-              style={{
-                background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
-                fontFamily: "var(--font-dm-sans), sans-serif",
-              }}
-            >
-              {busy ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                  Sending…
-                </span>
-              ) : (
-                "Continue →"
-              )}
-            </button>
-
-            <button
-              onClick={() => { setStep("compose"); setError(null); }}
-              className="w-full text-center text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              ← Edit request
-            </button>
-
-            {error && <p className="text-xs text-red-400">{error}</p>}
-          </div>
-        )}
-
-        {/* ── Step: Magic link sent ─────────────────────────────────────── */}
-        {step === "sent" && (
-          <div className="space-y-4 text-center">
-            <div
-              className="mx-auto flex h-14 w-14 items-center justify-center rounded-full"
-              style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)" }}
-            >
-              <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <div>
-              <p className="text-base font-semibold text-zinc-100">Check your inbox</p>
-              <p className="mt-1 text-sm text-zinc-400">
-                We sent a magic link to <span className="text-zinc-200">{email}</span>.
-                Click it to broadcast your request.
-              </p>
-            </div>
-            <button
-              onClick={() => { setStep("email"); setError(null); }}
-              className="text-sm text-zinc-500 hover:text-zinc-300 transition-colors"
-            >
-              Wrong email? Go back
-            </button>
-          </div>
-        )}
+          {error && <p className="text-xs text-red-400">{error}</p>}
+        </div>
 
       </div>
     </main>

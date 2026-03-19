@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -84,9 +85,11 @@ function LiveDot({ online, busy }: { online: boolean; busy?: boolean }) {
 function SellerCell({
   seller,
   dist,
+  onMessage,
 }: {
   seller: Seller;
   dist: string | null;
+  onMessage: (seller: Seller) => void;
 }) {
   const initials = (seller.display_name ?? "??")
     .split(" ")
@@ -103,8 +106,9 @@ function SellerCell({
   }, [seller.id]);
 
   return (
-    <div
-      className="relative flex aspect-square flex-col items-center justify-center overflow-hidden border border-white/[0.06] bg-black/60"
+    <button
+      onClick={() => onMessage(seller)}
+      className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden border border-white/[0.06] bg-black/60 transition-colors active:bg-white/[0.04]"
       style={{ backgroundImage: `radial-gradient(ellipse at 60% 30%, hsl(${hue},40%,12%), transparent 70%)` }}
     >
       {/* Avatar */}
@@ -134,7 +138,7 @@ function SellerCell({
       <div className="absolute right-2 top-2">
         <LiveDot online={seller.is_online} busy={seller.busy} />
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -228,12 +232,29 @@ function TabBar({ active }: { active: string }) {
 
 export function NearbyGrid() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const router = useRouter();
 
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [ticker, setTicker] = useState<TickerItem[]>([]);
   const [activeFilter, setActiveFilter] = useState("live");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
+
+  async function handleMessage(seller: Seller) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push("/auth?redirect=/nearby");
+      return;
+    }
+    // Seed the broadcast textarea with the seller's name so the buyer has context
+    try {
+      localStorage.setItem(
+        "bloc_pending_sentence",
+        `Message for ${seller.display_name ?? "seller"}${seller.category ? ` (${seller.category})` : ""}`,
+      );
+    } catch { /* ignore */ }
+    router.push("/broadcast");
+  }
 
   // Geolocation
   useEffect(() => {
@@ -414,7 +435,7 @@ export function NearbyGrid() {
           ) : (
             <div className="grid grid-cols-3">
               {sorted.map((s) => (
-                <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} />
+                <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
               ))}
             </div>
           )}
