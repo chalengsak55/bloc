@@ -46,12 +46,14 @@ export function BroadcastComposer() {
   }, []);
 
   async function submitRequest(userId: string, text: string) {
-    const { error: insertErr } = await supabase
+    const { data, error: insertErr } = await supabase
       .from("requests")
-      .insert({ sentence: text, buyer_id: userId });
+      .insert({ sentence: text, buyer_id: userId })
+      .select("id")
+      .single();
     if (insertErr) throw insertErr;
     try { localStorage.removeItem(PENDING_KEY); } catch { /* ignore */ }
-    router.push("/nearby");
+    router.push(`/broadcast/${data.id}`);
   }
 
   async function handleBroadcast() {
