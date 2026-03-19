@@ -28,7 +28,17 @@ export async function middleware(request: NextRequest) {
     },
   );
 
-  await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  // Phase 3: server-side guard — /seller/* requires an active session
+  const { pathname } = request.nextUrl;
+  if (pathname.startsWith("/seller") && !user) {
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/auth";
+    loginUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(loginUrl);
+  }
+
   return response;
 }
 

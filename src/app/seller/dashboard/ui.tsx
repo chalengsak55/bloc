@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -23,6 +24,7 @@ type Profile = {
 
 export function SellerDashboard() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const router = useRouter();
   const [me, setMe] = useState<Profile | null>(null);
   const [requests, setRequests] = useState<RequestRow[]>([]);
   const [status, setStatus] = useState<string | null>(null);
@@ -117,6 +119,11 @@ export function SellerDashboard() {
       void supabase.removeChannel(channel);
     };
   }, [supabase]);
+
+  async function signOut() {
+    await supabase.auth.signOut();
+    router.push("/auth");
+  }
 
   async function toggleOnline() {
     if (!me) {
@@ -241,6 +248,13 @@ export function SellerDashboard() {
           </Button>
         </div>
         {status ? <div className="mt-3 text-xs text-zinc-400">{status}</div> : null}
+
+        <button
+          onClick={signOut}
+          className="mt-4 text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+        >
+          Sign out
+        </button>
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur">
