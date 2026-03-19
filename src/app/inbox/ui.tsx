@@ -8,13 +8,15 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type ConversationRow = {
+  id: string;
   sellerId: string;
   sellerName: string | null;
   sellerCategory: string | null;
   sellerAvatarUrl: string | null;
   sellerIsOnline: boolean;
-  latestMessage: string;
-  latestAt: string;
+  lastMessage: string;
+  lastAt: string;
+  isMedia: boolean;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -51,7 +53,7 @@ function ConversationItem({ row }: { row: ConversationRow }) {
 
   return (
     <Link
-      href={`/seller/${row.sellerId}`}
+      href={`/inbox/${row.id}`}
       className="flex items-center gap-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-4 transition-colors hover:bg-white/[0.06] active:bg-white/[0.08]"
     >
       {/* Avatar */}
@@ -93,27 +95,16 @@ function ConversationItem({ row }: { row: ConversationRow }) {
             {row.sellerName ?? "Seller"}
           </span>
           <span className="flex-shrink-0 text-[11px] text-zinc-600">
-            {relativeTime(row.latestAt)}
+            {relativeTime(row.lastAt)}
           </span>
         </div>
-        <div className="mt-0.5 flex items-center gap-1.5">
-          {row.sellerCategory && (
-            <span className="flex-shrink-0 text-[11px] text-zinc-600">
-              {row.sellerCategory} ·
-            </span>
-          )}
-          <span className="truncate text-xs text-zinc-500">{row.latestMessage}</span>
-        </div>
+        <p className="mt-0.5 truncate text-xs text-zinc-500">
+          {row.isMedia ? "📎 Media" : row.lastMessage}
+        </p>
       </div>
 
       {/* Chevron */}
-      <svg
-        className="h-4 w-4 flex-shrink-0 text-zinc-700"
-        fill="none"
-        viewBox="0 0 24 24"
-        stroke="currentColor"
-        strokeWidth={2}
-      >
+      <svg className="h-4 w-4 flex-shrink-0 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
       </svg>
     </Link>
@@ -146,7 +137,7 @@ function EmptyState() {
   );
 }
 
-// ─── Tab bar (mirrors nearby) ─────────────────────────────────────────────────
+// ─── Tab bar ──────────────────────────────────────────────────────────────────
 
 function TabBar() {
   return (
@@ -162,25 +153,11 @@ function TabBar() {
   );
 }
 
-function TabItem({
-  href,
-  label,
-  icon,
-  active,
-}: {
-  href: string;
-  label: string;
-  icon: React.ReactNode;
-  active: boolean;
-}) {
+function TabItem({ href, label, icon, active }: { href: string; label: string; icon: React.ReactNode; active: boolean }) {
   return (
     <Link href={href} className="flex flex-col items-center gap-0.5 pb-1">
-      <span className={`transition-colors ${active ? "text-[#7c5ce8]" : "text-zinc-500"}`}>
-        {icon}
-      </span>
-      <span className={`text-[10px] transition-colors ${active ? "text-[#7c5ce8]" : "text-zinc-500"}`}>
-        {label}
-      </span>
+      <span className={`transition-colors ${active ? "text-[#7c5ce8]" : "text-zinc-500"}`}>{icon}</span>
+      <span className={`text-[10px] transition-colors ${active ? "text-[#7c5ce8]" : "text-zinc-500"}`}>{label}</span>
     </Link>
   );
 }
@@ -188,18 +165,9 @@ function TabItem({
 function BroadcastFAB() {
   return (
     <Link href="/broadcast" className="relative -mt-6 flex flex-col items-center">
-      <span
-        className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-40"
-        style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)", animation: "fab-ripple 2s ease-out infinite" }}
-      />
-      <span
-        className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-20"
-        style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)", animation: "fab-ripple 2s ease-out 0.6s infinite" }}
-      />
-      <span
-        className="relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg"
-        style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)" }}
-      >
+      <span className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-40" style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)", animation: "fab-ripple 2s ease-out infinite" }} />
+      <span className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-20" style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)", animation: "fab-ripple 2s ease-out 0.6s infinite" }} />
+      <span className="relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg" style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)" }}>
         <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
           <path strokeLinecap="round" d="M7 17A7 7 0 017 7" />
@@ -224,78 +192,71 @@ export function InboxList() {
     let canceled = false;
 
     async function load() {
-      // Auth gate
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.replace("/auth?redirect=/inbox");
         return;
       }
 
-      // 1. Fetch buyer's requests
-      const { data: requests } = await supabase
-        .from("requests")
-        .select("id, sentence, created_at")
+      // 1. Fetch all conversations for this buyer
+      const { data: convos } = await supabase
+        .from("conversations")
+        .select("id, seller_id, created_at")
         .eq("buyer_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .order("created_at", { ascending: false });
 
       if (canceled) return;
 
-      if (!requests || requests.length === 0) {
+      if (!convos || convos.length === 0) {
         setLoading(false);
         return;
       }
 
-      const requestIds = requests.map((r) => r.id);
+      const convoIds = convos.map((c) => c.id);
+      const sellerIds = [...new Set(convos.map((c) => c.seller_id))];
 
-      // 2. Fetch matches + seller profiles in parallel
-      const [{ data: matches }, { data: sellers }] = await Promise.all([
+      // 2. Fetch all messages for these conversations + seller profiles in parallel
+      const [{ data: allMessages }, { data: profiles }] = await Promise.all([
         supabase
-          .from("matches")
-          .select("request_id, seller_id")
-          .in("request_id", requestIds),
+          .from("messages")
+          .select("conversation_id, content, media_type, created_at")
+          .in("conversation_id", convoIds)
+          .order("created_at", { ascending: false }),
         supabase
           .from("profiles")
-          .select("id, display_name, category, avatar_url, is_online"),
+          .select("id, display_name, category, avatar_url, is_online")
+          .in("id", sellerIds),
       ]);
 
       if (canceled) return;
 
-      // Build lookup maps
-      const requestById = Object.fromEntries(requests.map((r) => [r.id, r]));
-      const sellerById = Object.fromEntries((sellers ?? []).map((s) => [s.id, s]));
-
-      // Group by seller: keep only the most recent request per seller
-      type SellerRecord = { id: string; display_name: string | null; category: string | null; avatar_url: string | null; is_online: boolean };
-      const latestBySeller = new Map<string, { message: string; at: string; seller: SellerRecord }>();
-
-      for (const match of matches ?? []) {
-        const req = requestById[match.request_id];
-        const seller = sellerById[match.seller_id] as SellerRecord | undefined;
-        if (!req || !seller) continue;
-
-        const existing = latestBySeller.get(match.seller_id);
-        if (!existing || req.created_at > existing.at) {
-          latestBySeller.set(match.seller_id, {
-            message: req.sentence,
-            at: req.created_at,
-            seller,
-          });
+      // Last message per conversation
+      const lastMsgByConvo = new Map<string, { content: string | null; media_type: string | null; created_at: string }>();
+      for (const msg of allMessages ?? []) {
+        if (!lastMsgByConvo.has(msg.conversation_id)) {
+          lastMsgByConvo.set(msg.conversation_id, msg);
         }
       }
 
-      // Sort conversations newest first
-      const rows: ConversationRow[] = [...latestBySeller.values()]
-        .sort((a, b) => b.at.localeCompare(a.at))
-        .map(({ message, at, seller }) => ({
-          sellerId: seller.id,
-          sellerName: seller.display_name,
-          sellerCategory: seller.category,
-          sellerAvatarUrl: seller.avatar_url,
-          sellerIsOnline: seller.is_online,
-          latestMessage: message,
-          latestAt: at,
-        }));
+      const profileById = new Map((profiles ?? []).map((p) => [p.id, p]));
+
+      const rows: ConversationRow[] = convos
+        .map((c) => {
+          const seller = profileById.get(c.seller_id);
+          const last = lastMsgByConvo.get(c.id);
+          return {
+            id: c.id,
+            sellerId: c.seller_id,
+            sellerName: seller?.display_name ?? null,
+            sellerCategory: seller?.category ?? null,
+            sellerAvatarUrl: seller?.avatar_url ?? null,
+            sellerIsOnline: seller?.is_online ?? false,
+            lastMessage: last?.content ?? "",
+            lastAt: last?.created_at ?? c.created_at,
+            isMedia: !last?.content && !!last?.media_type,
+          };
+        })
+        .sort((a, b) => b.lastAt.localeCompare(a.lastAt));
 
       if (!canceled) {
         setConversations(rows);
@@ -318,7 +279,6 @@ export function InboxList() {
       `}</style>
 
       <div className="flex min-h-dvh flex-col bg-[#0d0d12] pb-28">
-        {/* Header */}
         <div className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl">
           <div className="mx-auto max-w-xl px-4 py-4">
             <h1
@@ -330,15 +290,11 @@ export function InboxList() {
           </div>
         </div>
 
-        {/* Content */}
         <div className="mx-auto w-full max-w-xl flex-1 px-4 pt-4">
           {loading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="h-20 animate-pulse rounded-2xl border border-white/[0.04] bg-white/[0.03]"
-                />
+                <div key={i} className="h-20 animate-pulse rounded-2xl border border-white/[0.04] bg-white/[0.03]" />
               ))}
             </div>
           ) : conversations.length === 0 ? (
@@ -346,7 +302,7 @@ export function InboxList() {
           ) : (
             <div className="space-y-2">
               {conversations.map((row) => (
-                <ConversationItem key={row.sellerId} row={row} />
+                <ConversationItem key={row.id} row={row} />
               ))}
             </div>
           )}
@@ -367,7 +323,6 @@ function HomeIcon() {
     </svg>
   );
 }
-
 function MapIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
@@ -375,7 +330,6 @@ function MapIcon() {
     </svg>
   );
 }
-
 function InboxIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
@@ -383,7 +337,6 @@ function InboxIcon() {
     </svg>
   );
 }
-
 function ProfileIcon() {
   return (
     <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>

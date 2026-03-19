@@ -18,7 +18,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Insert request as buyer (RLS allows: auth.uid() = buyer_id)
+  const service = createSupabaseServiceClient();
+
+  // 1. Insert request as buyer
   const { data: request, error: reqErr } = await authClient
     .from("requests")
     .insert({ sentence: sentence.trim(), buyer_id: user.id })
@@ -29,10 +31,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: reqErr.message }, { status: 500 });
   }
 
-  // Insert a direct match targeting the specific seller.
-  // Requires service role — there is no RLS insert policy on matches
-  // (matches are backend-only, same as /api/match).
-  const service = createSupabaseServiceClient();
+  // 2. Insert a direct match targeting the specific seller
   const { error: matchErr } = await service.from("matches").insert({
     request_id: request.id,
     seller_id: sellerId,
@@ -44,7 +43,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: matchErr.message }, { status: 500 });
   }
 
-  // Notify the seller via the activity feed
+  // 3. Notify seller via activity feed
   await service.from("activities").insert({
     request_id: request.id,
     seller_id: sellerId,
@@ -52,5 +51,36 @@ export async function POST(req: Request) {
     body: sentence.trim(),
   });
 
-  return NextResponse.json({ ok: true, requestId: request.id });
+  // 4. Upsert conversation (buyer+seller pair is unique)
+  let conversationId: string;
+  const { data: existingConvo } = await service
+    .from("conversations")
+    .select("id")
+    .eq("buyer_id", user.id)
+    .eq("seller_id", sellerId)
+    .single();
+
+  if (existingConvo) {
+    conversationId = existingConvo.id;
+  } else {
+    const { data: newConvo, error: convoErr } = await service
+      .from("conversations")
+      .insert({ buyer_id: user.id, seller_id: sellerId, request_id: request.id })
+      .select("id")
+      .single();
+
+    if (convoErr) {
+      return NextResponse.json({ error: convoErr.message }, { status: 500 });
+    }
+    conversationId = newConvo.id;
+  }
+
+  // 5. Insert first message into conversation
+  await service.from("messages").insert({
+    conversation_id: conversationId,
+    sender_id: user.id,
+    content: sentence.trim(),
+  });
+
+  return NextResponse.json({ ok: true, requestId: request.id, conversationId });
 }

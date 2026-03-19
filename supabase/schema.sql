@@ -208,3 +208,89 @@ with check (
   )
 );
 
+-- ─── Conversations ────────────────────────────────────────────────────────────
+
+create table if not exists public.conversations (
+  id uuid primary key default gen_random_uuid(),
+  buyer_id uuid not null references auth.users(id) on delete cascade,
+  seller_id uuid not null references auth.users(id) on delete cascade,
+  request_id uuid references public.requests(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists conversations_buyer_seller
+  on public.conversations(buyer_id, seller_id);
+
+-- ─── Messages ────────────────────────────────────────────────────────────────
+
+create table if not exists public.messages (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  sender_id uuid not null references auth.users(id) on delete cascade,
+  content text,
+  media_url text,
+  media_type text check (media_type in ('image', 'video')),
+  created_at timestamptz not null default now(),
+  constraint messages_has_content check (content is not null or media_url is not null)
+);
+
+alter table public.conversations replica identity full;
+alter table public.messages replica identity full;
+alter publication supabase_realtime add table public.conversations;
+alter publication supabase_realtime add table public.messages;
+
+alter table public.conversations enable row level security;
+alter table public.messages enable row level security;
+
+-- Conversations: both participants can read; buyer creates
+drop policy if exists "conversations_participant_select" on public.conversations;
+create policy "conversations_participant_select"
+on public.conversations for select
+to authenticated
+using (auth.uid() = buyer_id or auth.uid() = seller_id);
+
+drop policy if exists "conversations_buyer_insert" on public.conversations;
+create policy "conversations_buyer_insert"
+on public.conversations for insert
+to authenticated
+with check (auth.uid() = buyer_id);
+
+-- Messages: participants can read and send
+drop policy if exists "messages_participant_select" on public.messages;
+create policy "messages_participant_select"
+on public.messages for select
+to authenticated
+using (
+  exists (
+    select 1 from public.conversations c
+    where c.id = conversation_id
+      and (c.buyer_id = auth.uid() or c.seller_id = auth.uid())
+  )
+);
+
+drop policy if exists "messages_participant_insert" on public.messages;
+create policy "messages_participant_insert"
+on public.messages for insert
+to authenticated
+with check (
+  sender_id = auth.uid()
+  and exists (
+    select 1 from public.conversations c
+    where c.id = conversation_id
+      and (c.buyer_id = auth.uid() or c.seller_id = auth.uid())
+  )
+);
+
+-- ─── Storage: messages-media ──────────────────────────────────────────────────
+-- Run once in Supabase SQL editor:
+--
+--   insert into storage.buckets (id, name, public)
+--   values ('messages-media', 'messages-media', true)
+--   on conflict do nothing;
+--
+--   create policy "messages_media_upload" on storage.objects for insert
+--   to authenticated with check (bucket_id = 'messages-media');
+--
+--   create policy "messages_media_read" on storage.objects for select
+--   to authenticated using (bucket_id = 'messages-media');
+

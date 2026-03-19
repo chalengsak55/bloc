@@ -49,7 +49,8 @@ export function DirectMessage({ seller }: { seller: Seller }) {
         const json = await res.json().catch(() => ({}));
         throw new Error((json as { error?: string }).error ?? "Failed to send");
       }
-      router.push("/inbox");
+      const json = await res.json() as { conversationId?: string };
+      router.push(json.conversationId ? `/inbox/${json.conversationId}` : "/inbox");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send. Please try again.");
       setBusy(false);
