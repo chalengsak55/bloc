@@ -109,6 +109,9 @@ export function BuyerProfile() {
   const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
+  const [pastOpen, setPastOpen] = useState(false);
+  const [canceling, setCanceling] = useState<Set<string>>(new Set());
+  const [deleting, setDeleting] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     let canceled = false;
@@ -145,8 +148,41 @@ export function BuyerProfile() {
     router.push("/");
   }
 
+  async function handleCancel(id: string) {
+    setCanceling((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/requests/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "closed" }),
+      });
+      if (res.ok) {
+        setBroadcasts((prev) =>
+          prev.map((b) => (b.id === id ? { ...b, status: "closed" } : b)),
+        );
+      }
+    } finally {
+      setCanceling((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }
+
+  async function handleDelete(id: string) {
+    setDeleting((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/requests/${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setBroadcasts((prev) => prev.filter((b) => b.id !== id));
+      }
+    } finally {
+      setDeleting((prev) => { const s = new Set(prev); s.delete(id); return s; });
+    }
+  }
+
   const initials = user?.email ? getInitials(user.email) : "..";
   const displayName = user?.user_metadata?.full_name as string | undefined;
+
+  const active = broadcasts.filter((b) => b.status === "open");
+  const past = broadcasts.filter((b) => b.status !== "open");
 
   return (
     <>
@@ -177,7 +213,6 @@ export function BuyerProfile() {
           {/* Identity card */}
           <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-5">
             <div className="flex items-center gap-4">
-              {/* Avatar */}
               <div
                 className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded-full text-lg font-bold text-white"
                 style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)" }}
@@ -194,7 +229,6 @@ export function BuyerProfile() {
               </div>
             </div>
 
-            {/* Sign out */}
             <button
               onClick={handleSignOut}
               disabled={signingOut}
@@ -216,35 +250,32 @@ export function BuyerProfile() {
             </button>
           </div>
 
-          {/* Past broadcasts */}
+          {/* Active broadcasts */}
           <div>
             <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-600">
-              Past Broadcasts
+              Active Broadcasts
             </h2>
 
             {loading ? (
               <div className="space-y-2">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-16 animate-pulse rounded-2xl border border-white/[0.04] bg-white/[0.03]"
-                  />
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <div key={i} className="h-16 animate-pulse rounded-2xl border border-white/[0.04] bg-white/[0.03]" />
                 ))}
               </div>
-            ) : broadcasts.length === 0 ? (
+            ) : active.length === 0 ? (
               <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-5 py-8 text-center">
-                <p className="text-sm text-zinc-500">No broadcasts yet.</p>
+                <p className="text-sm text-zinc-500">No active broadcasts.</p>
                 <Link
                   href="/broadcast"
                   className="mt-3 inline-block text-sm font-medium"
                   style={{ color: "#7c5ce8" }}
                 >
-                  Send your first broadcast →
+                  Send a broadcast →
                 </Link>
               </div>
             ) : (
               <div className="space-y-2">
-                {broadcasts.map((b) => (
+                {active.map((b) => (
                   <div
                     key={b.id}
                     className="rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3"
@@ -252,22 +283,79 @@ export function BuyerProfile() {
                     <div className="flex items-start justify-between gap-3">
                       <p className="flex-1 text-sm leading-snug text-zinc-200">{b.sentence}</p>
                       <span
-                        className="mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize"
-                        style={
-                          b.status === "open"
-                            ? { background: "rgba(124,92,232,0.15)", color: "#a78bfa" }
-                            : { background: "rgba(255,255,255,0.05)", color: "#71717a" }
-                        }
+                        className="mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium"
+                        style={{ background: "rgba(124,92,232,0.15)", color: "#a78bfa" }}
                       >
-                        {b.status}
+                        open
                       </span>
                     </div>
-                    <p className="mt-1.5 text-[11px] text-zinc-600">{relativeTime(b.created_at)}</p>
+                    <div className="mt-2 flex items-center justify-between">
+                      <p className="text-[11px] text-zinc-600">{relativeTime(b.created_at)}</p>
+                      <button
+                        onClick={() => handleCancel(b.id)}
+                        disabled={canceling.has(b.id)}
+                        className="rounded-lg border border-white/10 px-3 py-1 text-[11px] text-zinc-500 transition-colors hover:border-red-500/30 hover:text-red-400 disabled:opacity-40"
+                      >
+                        {canceling.has(b.id) ? "Canceling…" : "Cancel"}
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
           </div>
+
+          {/* Past broadcasts (collapsible) */}
+          {!loading && past.length > 0 && (
+            <div>
+              <button
+                onClick={() => setPastOpen((v) => !v)}
+                className="mb-3 flex w-full items-center justify-between text-xs font-medium uppercase tracking-widest text-zinc-600"
+              >
+                <span>Past Broadcasts ({past.length})</span>
+                <svg
+                  className={`h-3.5 w-3.5 transition-transform ${pastOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {pastOpen && (
+                <div className="space-y-2">
+                  {past.map((b) => (
+                    <div
+                      key={b.id}
+                      className="rounded-2xl border border-white/[0.04] bg-white/[0.02] px-4 py-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <p className="flex-1 text-sm leading-snug text-zinc-500">{b.sentence}</p>
+                        <span
+                          className="mt-0.5 flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium capitalize"
+                          style={{ background: "rgba(255,255,255,0.05)", color: "#71717a" }}
+                        >
+                          {b.status}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <p className="text-[11px] text-zinc-700">{relativeTime(b.created_at)}</p>
+                        <button
+                          onClick={() => handleDelete(b.id)}
+                          disabled={deleting.has(b.id)}
+                          className="rounded-lg border border-white/10 px-3 py-1 text-[11px] text-zinc-600 transition-colors hover:border-red-500/30 hover:text-red-400 disabled:opacity-40"
+                        >
+                          {deleting.has(b.id) ? "Deleting…" : "Delete"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
         </div>
       </div>

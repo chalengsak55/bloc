@@ -86,9 +86,9 @@ function MessageButton({ seller }: { seller: SellerProfile }) {
       return;
     }
 
-    const name = seller.display_name ?? "this seller";
+    const firstName = (seller.display_name ?? "").split(/\s+/)[0].trim() || "there";
     const cat = seller.category ? ` with ${seller.category}` : "";
-    const draft = encodeURIComponent(`Hi ${name}, I need help${cat}`);
+    const draft = encodeURIComponent(`Hi ${firstName}, I need help${cat}`);
     router.push(`/message/${seller.id}?draft=${draft}`);
   }
 
