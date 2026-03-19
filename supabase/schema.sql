@@ -42,6 +42,9 @@ create trigger profiles_set_updated_at
 before update on public.profiles
 for each row execute function public.set_updated_at();
 
+-- requests does NOT have updated_at — ensure no stale trigger exists
+drop trigger if exists requests_set_updated_at on public.requests;
+
 create table if not exists public.requests (
   id uuid primary key default gen_random_uuid(),
   buyer_id uuid not null references auth.users(id) on delete cascade,
