@@ -1,9 +1,15 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Instrument_Serif, DM_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const instrumentSerif = Instrument_Serif({
+  variable: "--font-instrument-serif",
+  subsets: ["latin"],
+  weight: "400",
+});
+
+const dmSans = DM_Sans({
+  variable: "--font-dm-sans",
   subsets: ["latin"],
 });
 
@@ -26,7 +32,8 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-dvh bg-[radial-gradient(1200px_600px_at_70%_-10%,rgba(120,80,255,0.18),transparent_60%),radial-gradient(900px_500px_at_10%_10%,rgba(30,255,200,0.10),transparent_60%),linear-gradient(to_bottom,rgba(0,0,0,0.92),rgba(0,0,0,0.97))] text-zinc-100 antialiased selection:bg-fuchsia-400/25 selection:text-zinc-50`}
+        className={`${instrumentSerif.variable} ${dmSans.variable} ${geistMono.variable} min-h-dvh bg-[#0d0d12] text-zinc-100 antialiased selection:bg-violet-500/25 selection:text-zinc-50`}
+        style={{ fontFamily: "var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif" }}
       >
         {children}
       </body>
