@@ -40,7 +40,7 @@ const TABS = [
   { label: "Nearby", icon: MapIcon, href: "/nearby" },
   { label: "Broadcast", icon: null, href: "/broadcast" },
   { label: "Inbox", icon: InboxIcon, href: "/inbox" },
-  { label: "Profile", icon: ProfileIcon, href: "#" },
+  { label: "Profile", icon: ProfileIcon, href: "/profile" },
 ];
 
 // ─── Haversine distance (km) ──────────────────────────────────────────────────

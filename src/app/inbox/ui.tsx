@@ -156,7 +156,7 @@ function TabBar() {
         <TabItem href="/nearby" label="Nearby" icon={<MapIcon />} active={false} />
         <BroadcastFAB />
         <TabItem href="/inbox" label="Inbox" icon={<InboxIcon />} active={true} />
-        <TabItem href="#" label="Profile" icon={<ProfileIcon />} active={false} />
+        <TabItem href="/profile" label="Profile" icon={<ProfileIcon />} active={false} />
       </div>
     </nav>
   );
