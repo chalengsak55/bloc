@@ -459,7 +459,7 @@ export function BuyerProfile() {
                       <button
                         onClick={() => handleCancel(b.id)}
                         disabled={canceling.has(b.id)}
-                        className="rounded-lg border border-white/10 px-3 py-1 text-[11px] text-zinc-500 transition-colors hover:border-red-500/30 hover:text-red-400 disabled:opacity-40"
+                        className="rounded-lg border border-red-400/30 px-3 py-1 text-[11px] text-red-400 transition-colors hover:bg-red-400/10 disabled:opacity-40"
                       >
                         {canceling.has(b.id) ? "Canceling…" : "Cancel"}
                       </button>
@@ -504,7 +504,7 @@ export function BuyerProfile() {
                         <button
                           onClick={() => handleDelete(b.id)}
                           disabled={deleting.has(b.id)}
-                          className="rounded-lg border border-white/10 px-3 py-1 text-[11px] text-zinc-600 transition-colors hover:border-red-500/30 hover:text-red-400 disabled:opacity-40"
+                          className="rounded-lg border border-red-500/40 px-3 py-1 text-[11px] text-red-500 transition-colors hover:bg-red-500/10 disabled:opacity-40"
                         >
                           {deleting.has(b.id) ? "Deleting…" : "Delete"}
                         </button>
