@@ -112,6 +112,13 @@ to authenticated
 using (auth.uid() = id)
 with check (auth.uid() = id);
 
+-- Requests: public ticker read (anon + authenticated), buyers CRUD own, sellers read open.
+drop policy if exists "requests_read_ticker_public" on public.requests;
+create policy "requests_read_ticker_public"
+on public.requests for select
+to anon, authenticated
+using (true);
+
 -- Requests: buyers can create/read/update/delete their own. Sellers can read open requests.
 drop policy if exists "requests_insert_buyer" on public.requests;
 create policy "requests_insert_buyer"

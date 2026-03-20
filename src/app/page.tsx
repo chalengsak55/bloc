@@ -1,9 +1,12 @@
 import Link from "next/link";
 import { LivePill } from "./home-pill";
+import { LiveTicker } from "./live-ticker";
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-5 py-12">
+    <main className="flex min-h-screen flex-col">
+      <LiveTicker />
+      <div className="flex flex-1 flex-col items-center justify-center px-5 py-12">
       <div className="flex w-full max-w-sm flex-col gap-8">
 
         {/* ── Logo ─────────────────────────────────────────────────────── */}
@@ -133,6 +136,7 @@ export default function Home() {
         >
           Quality wins. Not ad budget.
         </p>
+      </div>
       </div>
     </main>
   );
