@@ -16,6 +16,7 @@ type Seller = {
   busy?: boolean;
   lat?: number | null;
   lng?: number | null;
+  avatar_url?: string | null;
 };
 
 type TickerItem = {
@@ -112,12 +113,20 @@ function SellerCell({
       style={{ backgroundImage: `radial-gradient(ellipse at 60% 30%, hsl(${hue},40%,12%), transparent 70%)` }}
     >
       {/* Avatar */}
-      <div
-        className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
-        style={{ background: `linear-gradient(135deg, hsl(${hue},55%,45%), hsl(${(hue + 60) % 360},55%,40%))` }}
-      >
-        {initials}
-      </div>
+      {seller.avatar_url ? (
+        <img
+          src={seller.avatar_url}
+          alt={seller.display_name ?? "Seller"}
+          className="h-10 w-10 rounded-full object-cover"
+        />
+      ) : (
+        <div
+          className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
+          style={{ background: `linear-gradient(135deg, hsl(${hue},55%,45%), hsl(${(hue + 60) % 360},55%,40%))` }}
+        >
+          {initials}
+        </div>
+      )}
 
       {/* Name + category */}
       <div className="mt-1.5 px-1 text-center">
@@ -261,7 +270,7 @@ export function NearbyGrid() {
       try {
         let query = supabase
           .from("profiles")
-          .select("id,display_name,category,location_text,is_online,lat,lng")
+          .select("id,display_name,category,location_text,is_online,lat,lng,avatar_url")
           .eq("role", "seller")
           .limit(50);
 
