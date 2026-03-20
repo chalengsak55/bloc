@@ -367,23 +367,24 @@ export function NearbyGrid() {
       `}</style>
 
       <div className="flex min-h-dvh flex-col pb-24">
+        {/* Page title */}
+        <div className="mx-auto max-w-[600px] px-4 pb-2 pt-6">
+          <h1
+            className="text-6xl tracking-tight"
+            style={{
+              fontFamily: "var(--font-instrument-serif), Georgia, serif",
+              background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Nearby.
+          </h1>
+        </div>
+
         {/* Header */}
         <div className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl">
-          <div className="mx-auto max-w-[600px] px-4 pb-2 pt-4">
-            <h1
-              className="text-5xl tracking-tight"
-              style={{
-                fontFamily: "var(--font-instrument-serif), Georgia, serif",
-                background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Nearby.
-            </h1>
-          </div>
-
           {/* Filter pills */}
           <div className="mx-auto max-w-[600px] overflow-x-auto px-4 pb-3 scrollbar-none">
           <div className="flex gap-2">
