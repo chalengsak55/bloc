@@ -369,7 +369,7 @@ export function NearbyGrid() {
       <div className="flex min-h-dvh flex-col pb-24">
         {/* Header */}
         <div className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl">
-          <div className="mx-auto max-w-xl px-4 py-3">
+          <div className="mx-auto max-w-[600px] px-4 py-3">
             <div className="flex items-center justify-between">
               <h1 className="text-sm font-semibold text-zinc-100">Nearby</h1>
               <span className="text-xs text-zinc-500">
@@ -379,7 +379,8 @@ export function NearbyGrid() {
           </div>
 
           {/* Filter pills */}
-          <div className="flex gap-2 overflow-x-auto px-4 pb-3 scrollbar-none">
+          <div className="mx-auto max-w-[600px] overflow-x-auto px-4 pb-3 scrollbar-none">
+          <div className="flex gap-2">
             {FILTERS.map((f) => (
               <button
                 key={f.value}
@@ -398,6 +399,7 @@ export function NearbyGrid() {
                 {f.label}
               </button>
             ))}
+          </div>
           </div>
         </div>
 
