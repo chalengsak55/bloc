@@ -77,8 +77,8 @@ export function BroadcastComposer() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-5 py-12 bg-[#0d0d12]">
-      <div className="w-full max-w-sm space-y-8">
+    <main className="flex min-h-screen flex-col items-center justify-center overflow-x-hidden bg-[#0d0d12]">
+      <div className="w-full max-w-sm space-y-8 px-5 py-12">
 
         {/* Back link */}
         <Link
