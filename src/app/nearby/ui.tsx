@@ -109,42 +109,38 @@ function SellerCell({
   return (
     <button
       onClick={() => onMessage(seller)}
-      className="relative flex aspect-square w-full flex-col items-center justify-center overflow-hidden border border-white/[0.06] bg-black/60 transition-colors active:bg-white/[0.04]"
-      style={{ backgroundImage: `radial-gradient(ellipse at 60% 30%, hsl(${hue},40%,12%), transparent 70%)` }}
+      className="relative aspect-square w-full overflow-hidden border border-white/[0.06] transition-opacity active:opacity-80"
     >
-      {/* Avatar */}
+      {/* Full-bleed background */}
       {seller.avatar_url ? (
         <img
           src={seller.avatar_url}
           alt={seller.display_name ?? "Seller"}
-          className="h-10 w-10 rounded-full object-cover"
+          className="absolute inset-0 h-full w-full object-cover"
         />
       ) : (
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
-          style={{ background: `linear-gradient(135deg, hsl(${hue},55%,45%), hsl(${(hue + 60) % 360},55%,40%))` }}
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(135deg, hsl(${hue},40%,18%), hsl(${(hue + 60) % 360},40%,12%))` }}
         >
-          {initials}
+          <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white/30">
+            {initials}
+          </span>
         </div>
       )}
 
-      {/* Name + category */}
-      <div className="mt-1.5 px-1 text-center">
-        <div className="truncate text-[10px] font-semibold leading-tight text-zinc-100">
+      {/* Bottom gradient scrim + text */}
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent px-1.5 pb-1.5 pt-6">
+        <div className="truncate text-[10px] font-semibold leading-tight text-white">
           {seller.display_name ?? "Seller"}
         </div>
-        <div className="truncate text-[9px] text-zinc-500">
-          {seller.category ?? "—"}
+        <div className="truncate text-[9px] text-white/60">
+          {dist ? `${dist} · ${seller.category ?? "—"}` : (seller.category ?? "—")}
         </div>
       </div>
 
-      {/* Distance */}
-      {dist ? (
-        <div className="mt-1 text-[9px] text-zinc-500">{dist}</div>
-      ) : null}
-
       {/* Live dot — top-right */}
-      <div className="absolute right-2 top-2">
+      <div className="absolute right-1.5 top-1.5">
         <LiveDot online={seller.is_online} busy={seller.busy} />
       </div>
     </button>
