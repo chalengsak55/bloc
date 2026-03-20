@@ -405,9 +405,9 @@ export function NearbyGrid() {
         <Ticker items={ticker} />
 
         {/* Grid */}
-        <div className="w-full flex-1">
+        <div className="mx-auto w-full max-w-[600px] flex-1">
           {loading ? (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-3">
               {Array.from({ length: 9 }).map((_, i) => (
                 <div
                   key={i}
@@ -421,7 +421,7 @@ export function NearbyGrid() {
               No agents nearby for this filter.
             </div>
           ) : (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+            <div className="grid grid-cols-3">
               {sorted.map((s) => (
                 <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
               ))}
