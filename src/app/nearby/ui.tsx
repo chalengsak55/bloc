@@ -369,18 +369,21 @@ export function NearbyGrid() {
       <div className="flex min-h-dvh flex-col pb-24">
         {/* Page title */}
         <div className="mx-auto max-w-[600px] px-4 pb-2 pt-6">
-          <h1
-            className="text-6xl tracking-tight"
-            style={{
-              fontFamily: "var(--font-instrument-serif), Georgia, serif",
-              background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-              backgroundClip: "text",
-            }}
-          >
-            Nearby.
-          </h1>
+          <div className="flex items-baseline justify-between">
+            <h1
+              className="text-6xl tracking-tight"
+              style={{
+                fontFamily: "var(--font-instrument-serif), Georgia, serif",
+                background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
+            >
+              Nearby.
+            </h1>
+            <span className="text-xs text-zinc-500">{sellers.length} agents</span>
+          </div>
         </div>
 
         {/* Header */}
