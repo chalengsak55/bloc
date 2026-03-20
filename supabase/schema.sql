@@ -54,8 +54,14 @@ create table if not exists public.requests (
   budget_text text,
   time_text text,
   status text not null default 'open',
+  lat double precision,
+  lng double precision,
   created_at timestamptz not null default now()
 );
+
+-- Migration: add lat/lng to existing requests tables
+alter table public.requests add column if not exists lat double precision;
+alter table public.requests add column if not exists lng double precision;
 
 create table if not exists public.matches (
   id uuid primary key default gen_random_uuid(),

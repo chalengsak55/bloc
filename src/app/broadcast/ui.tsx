@@ -79,6 +79,17 @@ export function BroadcastComposer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const posRef = React.useRef<{ lat: number; lng: number } | null>(null);
+
+  // Silently capture geolocation for request tagging
+  useEffect(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { posRef.current = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+      () => {}, // denied — fine, lat/lng will be null
+      { timeout: 10_000 },
+    );
+  }, []);
 
   // On mount: restore draft. If session + pending sentence exist together
   // (i.e. user just returned from auth), auto-submit immediately.
@@ -109,9 +120,14 @@ export function BroadcastComposer() {
   }, []);
 
   async function submitRequest(userId: string, text: string) {
+    const pos = posRef.current;
     const { data, error: insertErr } = await supabase
       .from("requests")
-      .insert({ sentence: text, buyer_id: userId })
+      .insert({
+        sentence: text,
+        buyer_id: userId,
+        ...(pos ? { lat: pos.lat, lng: pos.lng } : {}),
+      })
       .select("id")
       .single();
     if (insertErr) throw insertErr;
