@@ -158,8 +158,8 @@ function Ticker({ items }: { items: TickerItem[] }) {
         <span className="px-4">{text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{text}</span>
       </div>
       {/* Fade edges */}
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black/70 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-black/70 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-16" style={{ background: "linear-gradient(to right, #0d0d12, transparent)" }} />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-16" style={{ background: "linear-gradient(to left, #0d0d12, transparent)" }} />
     </div>
   );
 }
