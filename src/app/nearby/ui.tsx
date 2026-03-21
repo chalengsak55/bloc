@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -218,9 +218,6 @@ export function NearbyGrid() {
   const [tickerPaused, setTickerPaused] = useState(false);
   const [activeFilter, setActiveFilter] = useState("live");
   const [searchQuery, setSearchQuery] = useState("");
-  const [headerVisible, setHeaderVisible] = useState(true);
-  const headerRef = useRef<HTMLDivElement>(null);
-  const lastScrollY = useRef(0);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -237,22 +234,7 @@ export function NearbyGrid() {
     );
   }, []);
 
-// Hide header on scroll down, show on scroll up (document works on iOS Safari)
-  useEffect(() => {
-    function onScroll() {
-      const y = document.documentElement.scrollTop || document.body.scrollTop;
-      if (y > lastScrollY.current + 4) {
-        setHeaderVisible(false);
-      } else if (y < lastScrollY.current - 4) {
-        setHeaderVisible(true);
-      }
-      lastScrollY.current = y;
-    }
-    document.addEventListener("scroll", onScroll, { passive: true });
-    return () => document.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Fetch all sellers once (filtering is client-side)
+// Fetch all sellers once (filtering is client-side)
   useEffect(() => {
     let canceled = false;
     async function load() {
@@ -407,11 +389,7 @@ export function NearbyGrid() {
 
         {/* Header */}
         <div
-          ref={headerRef}
-          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl transition-transform duration-300"
-          style={{
-            transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-          }}
+          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl"
         >
           {/* Filter pills */}
           <div className="mx-auto max-w-[600px] overflow-x-auto px-4 pb-3 scrollbar-none">
