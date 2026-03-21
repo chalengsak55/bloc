@@ -244,6 +244,8 @@ export function NearbyGrid() {
   const [activeFilter, setActiveFilter] = useState("live");
   const [searchQuery, setSearchQuery] = useState("");
   const [headerVisible, setHeaderVisible] = useState(true);
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const headerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -261,10 +263,15 @@ export function NearbyGrid() {
     );
   }, []);
 
-  // Hide header on scroll down, show on scroll up
+  // Measure header height once mounted
+  useEffect(() => {
+    if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
+  }, []);
+
+  // Hide header on scroll down, show on scroll up (document works on iOS Safari)
   useEffect(() => {
     function onScroll() {
-      const y = window.scrollY;
+      const y = document.documentElement.scrollTop || document.body.scrollTop;
       if (y > lastScrollY.current + 4) {
         setHeaderVisible(false);
       } else if (y < lastScrollY.current - 4) {
@@ -272,8 +279,8 @@ export function NearbyGrid() {
       }
       lastScrollY.current = y;
     }
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    document.addEventListener("scroll", onScroll, { passive: true });
+    return () => document.removeEventListener("scroll", onScroll);
   }, []);
 
   // Fetch sellers
@@ -422,8 +429,12 @@ export function NearbyGrid() {
 
         {/* Header */}
         <div
-          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl transition-transform duration-300"
-          style={{ transform: headerVisible ? "translateY(0)" : "translateY(-100%)" }}
+          ref={headerRef}
+          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl transition-[transform,margin-bottom] duration-300"
+          style={{
+            transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
+            marginBottom: headerVisible ? 0 : -headerHeight,
+          }}
         >
           {/* Filter pills */}
           <div className="mx-auto max-w-[600px] overflow-x-auto px-4 pb-3 scrollbar-none">
