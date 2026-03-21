@@ -141,41 +141,6 @@ function SellerCell({
 
 // ─── Live ticker ──────────────────────────────────────────────────────────────
 
-function Ticker({ items }: { items: TickerItem[] }) {
-  const sentences = items.map((i) => i.sentence);
-  const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-
-  useEffect(() => {
-    if (sentences.length <= 1 || paused) return;
-    const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % sentences.length);
-    }, 3000);
-    return () => clearInterval(timer);
-  }, [paused, sentences.length]);
-
-  if (sentences.length === 0) return null;
-
-  const safeIndex = index % sentences.length;
-
-  return (
-    <div
-      className="relative w-full overflow-hidden border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
-      style={{ transform: "translateZ(0)" }}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onTouchStart={() => setPaused(true)}
-      onTouchEnd={() => setPaused(false)}
-    >
-      <p
-        key={safeIndex}
-        className="min-w-0 truncate text-[10px] text-zinc-400 animate-fade-in"
-      >
-        {sentences[safeIndex]}
-      </p>
-    </div>
-  );
-}
 
 // ─── Broadcast FAB ────────────────────────────────────────────────────────────
 
@@ -249,6 +214,8 @@ export function NearbyGrid() {
 
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [ticker, setTicker] = useState<TickerItem[]>([]);
+  const [tickerIndex, setTickerIndex] = useState(0);
+  const [tickerPaused, setTickerPaused] = useState(false);
   const [activeFilter, setActiveFilter] = useState("live");
   const [searchQuery, setSearchQuery] = useState("");
   const [headerVisible, setHeaderVisible] = useState(true);
@@ -325,6 +292,15 @@ export function NearbyGrid() {
     loadTicker();
     return () => { canceled = true; };
   }, [supabase]);
+
+  // Advance ticker index every 3 seconds
+  useEffect(() => {
+    if (ticker.length <= 1 || tickerPaused) return;
+    const timer = setInterval(() => {
+      setTickerIndex((i) => (i + 1) % ticker.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [ticker.length, tickerPaused]);
 
   // Real-time: new requests → prepend to ticker
   useEffect(() => {
@@ -492,7 +468,19 @@ export function NearbyGrid() {
         </div>
 
         {/* Live ticker */}
-        <Ticker items={ticker} />
+        {ticker.length > 0 && (
+          <div
+            className="w-full border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
+            onMouseEnter={() => setTickerPaused(true)}
+            onMouseLeave={() => setTickerPaused(false)}
+            onTouchStart={() => setTickerPaused(true)}
+            onTouchEnd={() => setTickerPaused(false)}
+          >
+            <p key={tickerIndex} className="min-w-0 truncate text-[10px] text-zinc-400 animate-fade-in">
+              {ticker[tickerIndex % ticker.length]?.sentence}
+            </p>
+          </div>
+        )}
 
         {/* Grid */}
         <div className="mx-auto w-full max-w-[600px] flex-1">
