@@ -86,22 +86,39 @@ export function LiveTicker() {
     return (nearby.length > 0 ? nearby : items).slice(0, 10);
   }, [items, userPos]);
 
-  const text = displayed.map((i) => i.sentence).join("   •   ");
-  if (!text) return null;
+  const sentences = displayed.map((i) => i.sentence);
+  const [index, setIndex] = useState(0);
+  const [visible, setVisible] = useState(true);
+  const [paused, setPaused] = useState(false);
+
+  useEffect(() => {
+    if (sentences.length <= 1 || paused) return;
+    const fadeOut = setTimeout(() => setVisible(false), 2700);
+    const advance = setTimeout(() => {
+      setIndex((i) => (i + 1) % sentences.length);
+      setVisible(true);
+    }, 3000);
+    return () => { clearTimeout(fadeOut); clearTimeout(advance); };
+  }, [index, paused, sentences.length]);
+
+  if (sentences.length === 0) return null;
+
+  const safeIndex = index % sentences.length;
 
   return (
-    <>
-      <style>{`@keyframes ticker-scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}`}</style>
-      <div className="relative overflow-hidden border-b border-white/[0.06] bg-black/40 py-1.5">
-        <div
-          className="flex whitespace-nowrap text-[10px] text-zinc-400"
-          style={{ animation: "ticker-scroll 30s linear infinite" }}
-        >
-          <span className="px-4">{text}&nbsp;&nbsp;&nbsp;•&nbsp;&nbsp;&nbsp;{text}</span>
-        </div>
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-16" style={{ background: "linear-gradient(to right, #0d0d12, transparent)" }} />
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-16" style={{ background: "linear-gradient(to left, #0d0d12, transparent)" }} />
-      </div>
-    </>
+    <div
+      className="border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onTouchStart={() => setPaused(true)}
+      onTouchEnd={() => setPaused(false)}
+    >
+      <p
+        className="truncate text-[10px] text-zinc-400 transition-opacity duration-300"
+        style={{ opacity: visible ? 1 : 0 }}
+      >
+        {sentences[safeIndex]}
+      </p>
+    </div>
   );
 }
