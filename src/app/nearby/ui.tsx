@@ -476,7 +476,7 @@ export function NearbyGrid() {
             onTouchStart={() => setTickerPaused(true)}
             onTouchEnd={() => setTickerPaused(false)}
           >
-            <p key={tickerIndex} className="min-w-0 truncate text-[10px] text-zinc-400 animate-fade-in">
+            <p className="min-w-0 truncate text-[10px] text-zinc-400">
               {ticker[tickerIndex % ticker.length]?.sentence}
             </p>
           </div>
