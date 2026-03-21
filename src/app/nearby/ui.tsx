@@ -164,6 +164,7 @@ function Ticker({ items }: { items: TickerItem[] }) {
   return (
     <div
       className="relative w-full overflow-hidden border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
+      style={{ transform: "translateZ(0)" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
@@ -417,15 +418,6 @@ export function NearbyGrid() {
 
   return (
     <>
-      {/* Keyframe styles */}
-      <style>{`
-        @keyframes fab-ripple {
-          0%   { transform: scale(1); opacity: 0.4; }
-          100% { transform: scale(2.2); opacity: 0; }
-        }
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
-      `}</style>
-
       <div className="flex min-h-dvh flex-col pb-24">
         {/* Page title */}
         <div className="mx-auto max-w-[600px] px-4 pb-2 pt-6">
