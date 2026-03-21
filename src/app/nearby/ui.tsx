@@ -163,14 +163,14 @@ function Ticker({ items }: { items: TickerItem[] }) {
 
   return (
     <div
-      className="border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
+      className="relative w-full overflow-hidden border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
       onTouchEnd={() => setPaused(false)}
     >
       <p
-        className="truncate text-[10px] text-zinc-400 transition-opacity duration-300"
+        className="min-w-0 truncate text-[10px] text-zinc-400 transition-opacity duration-300"
         style={{ opacity: visible ? 1 : 0 }}
       >
         {sentences[safeIndex]}
