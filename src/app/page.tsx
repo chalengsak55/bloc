@@ -137,6 +137,14 @@ export default function Home() {
         >
           Quality wins. Not ad budget.
         </p>
+
+        {/* ── Seller CTA ──────────────────────────────────────────────── */}
+        <Link
+          href="/seller/onboarding"
+          className="block text-center text-xs text-zinc-500 transition-colors hover:text-zinc-300"
+        >
+          Are you a business? Join as a seller &rarr;
+        </Link>
       </div>
       </div>
     </main>
