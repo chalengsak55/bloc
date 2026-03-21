@@ -27,14 +27,6 @@ type TickerItem = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const FILTERS = [
-  { label: "🟢 Live", value: "live" },
-  { label: "✂️ Hair", value: "hair" },
-  { label: "🍽️ Food", value: "food" },
-  { label: "🔧 Home", value: "home" },
-  { label: "📦 Moving", value: "moving" },
-  { label: "💻 Tech", value: "tech" },
-];
 
 const TABS = [
   { label: "Home", icon: HomeIcon, href: "/" },
@@ -283,25 +275,17 @@ export function NearbyGrid() {
     return () => document.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Fetch sellers
+  // Fetch all sellers once (filtering is client-side)
   useEffect(() => {
     let canceled = false;
     async function load() {
       setLoading(true);
       try {
-        let query = supabase
+        const { data } = await supabase
           .from("profiles")
           .select("id,display_name,category,location_text,is_online,lat,lng,avatar_url")
           .eq("role", "seller")
           .limit(50);
-
-        if (activeFilter === "live") {
-          query = query.eq("is_online", true);
-        } else {
-          query = query.ilike("category", `%${activeFilter}%`);
-        }
-
-        const { data } = await query;
         if (!canceled) setSellers((data ?? []) as Seller[]);
       } finally {
         if (!canceled) setLoading(false);
@@ -309,7 +293,7 @@ export function NearbyGrid() {
     }
     load();
     return () => { canceled = true; };
-  }, [supabase, activeFilter]);
+  }, [supabase]);
 
   // Fetch recent requests for ticker
   useEffect(() => {
@@ -360,16 +344,37 @@ export function NearbyGrid() {
     return () => { void supabase.removeChannel(channel); };
   }, [supabase]);
 
-  // Filter by search query
+  // Derive filter pills from loaded sellers
+  const filters = useMemo(() => {
+    const categories = [
+      ...new Set(
+        sellers.map((s) => s.category?.trim().toLowerCase()).filter(Boolean) as string[],
+      ),
+    ].sort();
+    return [
+      { label: "🟢 Live", value: "live" },
+      ...categories.map((c) => ({ label: c.charAt(0).toUpperCase() + c.slice(1), value: c })),
+    ];
+  }, [sellers]);
+
+  // Apply active pill filter then search query
   const filtered = useMemo(() => {
-    if (!searchQuery.trim()) return sellers;
-    const q = searchQuery.toLowerCase();
-    return sellers.filter(
-      (s) =>
-        s.display_name?.toLowerCase().includes(q) ||
-        s.category?.toLowerCase().includes(q),
-    );
-  }, [sellers, searchQuery]);
+    let result = sellers;
+    if (activeFilter === "live") {
+      result = result.filter((s) => s.is_online);
+    } else {
+      result = result.filter((s) => s.category?.toLowerCase().includes(activeFilter));
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      result = result.filter(
+        (s) =>
+          s.display_name?.toLowerCase().includes(q) ||
+          s.category?.toLowerCase().includes(q),
+      );
+    }
+    return result;
+  }, [sellers, activeFilter, searchQuery]);
 
   // Sort by distance if we have user position
   const sorted = useMemo(() => {
@@ -439,7 +444,7 @@ export function NearbyGrid() {
           {/* Filter pills */}
           <div className="mx-auto max-w-[600px] overflow-x-auto px-4 pb-3 scrollbar-none">
           <div className="flex gap-2">
-            {FILTERS.map((f) => (
+            {filters.map((f) => (
               <button
                 key={f.value}
                 onClick={() => setActiveFilter(f.value)}
