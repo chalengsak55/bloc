@@ -242,6 +242,7 @@ export function NearbyGrid() {
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [ticker, setTicker] = useState<TickerItem[]>([]);
   const [activeFilter, setActiveFilter] = useState("live");
+  const [searchQuery, setSearchQuery] = useState("");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -335,10 +336,21 @@ export function NearbyGrid() {
     return () => { void supabase.removeChannel(channel); };
   }, [supabase]);
 
+  // Filter by search query
+  const filtered = useMemo(() => {
+    if (!searchQuery.trim()) return sellers;
+    const q = searchQuery.toLowerCase();
+    return sellers.filter(
+      (s) =>
+        s.display_name?.toLowerCase().includes(q) ||
+        s.category?.toLowerCase().includes(q),
+    );
+  }, [sellers, searchQuery]);
+
   // Sort by distance if we have user position
   const sorted = useMemo(() => {
-    if (!userPos) return sellers;
-    return [...sellers].sort((a, b) => {
+    if (!userPos) return filtered;
+    return [...filtered].sort((a, b) => {
       const da =
         a.lat != null && a.lng != null
           ? distanceKm(userPos.lat, userPos.lng, a.lat, a.lng)
@@ -349,7 +361,7 @@ export function NearbyGrid() {
           : Infinity;
       return da - db;
     });
-  }, [sellers, userPos]);
+  }, [filtered, userPos]);
 
   function getDistLabel(s: Seller): string | null {
     if (!userPos || s.lat == null || s.lng == null) return null;
@@ -415,6 +427,28 @@ export function NearbyGrid() {
               </button>
             ))}
           </div>
+          </div>
+          {/* Search bar */}
+          <div className="mx-auto max-w-[600px] px-4 pb-3">
+            <div className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 focus-within:border-[#7c5ce8]/60">
+              <svg className="h-4 w-4 flex-shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+              </svg>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by name or category…"
+                className="w-full bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery("")} className="flex-shrink-0 text-zinc-500 hover:text-zinc-300">
+                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
