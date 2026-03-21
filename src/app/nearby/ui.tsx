@@ -441,7 +441,7 @@ export function NearbyGrid() {
         {/* Live ticker */}
         {ticker.length > 0 && (
           <div
-            className="w-full border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
+            className="w-full overflow-hidden border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
             onMouseEnter={() => setTickerPaused(true)}
             onMouseLeave={() => setTickerPaused(false)}
             onTouchStart={() => setTickerPaused(true)}
