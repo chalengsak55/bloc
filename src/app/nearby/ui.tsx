@@ -219,7 +219,6 @@ export function NearbyGrid() {
   const [activeFilter, setActiveFilter] = useState("live");
   const [searchQuery, setSearchQuery] = useState("");
   const [headerVisible, setHeaderVisible] = useState(true);
-  const [headerHeight, setHeaderHeight] = useState(0);
   const headerRef = useRef<HTMLDivElement>(null);
   const lastScrollY = useRef(0);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
@@ -238,12 +237,7 @@ export function NearbyGrid() {
     );
   }, []);
 
-  // Measure header height once mounted
-  useEffect(() => {
-    if (headerRef.current) setHeaderHeight(headerRef.current.offsetHeight);
-  }, []);
-
-  // Hide header on scroll down, show on scroll up (document works on iOS Safari)
+// Hide header on scroll down, show on scroll up (document works on iOS Safari)
   useEffect(() => {
     function onScroll() {
       const y = document.documentElement.scrollTop || document.body.scrollTop;
@@ -414,10 +408,9 @@ export function NearbyGrid() {
         {/* Header */}
         <div
           ref={headerRef}
-          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl transition-[transform,margin-bottom] duration-300"
+          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl transition-transform duration-300"
           style={{
             transform: headerVisible ? "translateY(0)" : "translateY(-100%)",
-            marginBottom: headerVisible ? 0 : -headerHeight,
           }}
         >
           {/* Filter pills */}
