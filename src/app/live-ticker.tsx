@@ -30,6 +30,8 @@ export function LiveTicker() {
   const [items, setItems] = useState<TickerItem[]>([]);
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [geoReady, setGeoReady] = useState(false);
+  const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   // Resolve geolocation once; mark ready either way so fetch isn't delayed
   useEffect(() => {
@@ -39,12 +41,12 @@ export function LiveTicker() {
         setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setGeoReady(true);
       },
-      () => setGeoReady(true), // denied or timed out → fall back to global
+      () => setGeoReady(true),
       { timeout: 5_000, maximumAge: 60_000 },
     );
   }, []);
 
-  // Fetch once geo settles — grab extra rows so filtering leaves enough
+  // Fetch once geo settles
   useEffect(() => {
     if (!geoReady) return;
     let canceled = false;
@@ -77,29 +79,23 @@ export function LiveTicker() {
   }, [supabase]);
 
   // Filter to nearby if we have a position; fall back to all if nothing qualifies
-  const displayed = useMemo(() => {
-    if (!userPos) return items.slice(0, 10);
+  const sentences = useMemo(() => {
+    if (!userPos) return items.slice(0, 10).map((i) => i.sentence);
     const nearby = items.filter(
       (i) => i.lat != null && i.lng != null &&
         distanceKm(userPos.lat, userPos.lng, i.lat, i.lng) <= RADIUS_KM,
     );
-    return (nearby.length > 0 ? nearby : items).slice(0, 10);
+    return (nearby.length > 0 ? nearby : items).slice(0, 10).map((i) => i.sentence);
   }, [items, userPos]);
 
-  const sentences = displayed.map((i) => i.sentence);
-  const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-  const [paused, setPaused] = useState(false);
-
+  // Advance index every 3 seconds
   useEffect(() => {
     if (sentences.length <= 1 || paused) return;
-    const fadeOut = setTimeout(() => setVisible(false), 2700);
-    const advance = setTimeout(() => {
+    const timer = setInterval(() => {
       setIndex((i) => (i + 1) % sentences.length);
-      setVisible(true);
     }, 3000);
-    return () => { clearTimeout(fadeOut); clearTimeout(advance); };
-  }, [index, paused, sentences.length]);
+    return () => clearInterval(timer);
+  }, [paused, sentences.length]);
 
   if (sentences.length === 0) return null;
 
@@ -108,14 +104,15 @@ export function LiveTicker() {
   return (
     <div
       className="relative w-full overflow-hidden border-b border-white/[0.06] bg-black/40 px-4 py-1.5 select-none"
+      style={{ transform: "translateZ(0)" }}
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onTouchStart={() => setPaused(true)}
       onTouchEnd={() => setPaused(false)}
     >
       <p
-        className="min-w-0 truncate text-[10px] text-zinc-400 transition-opacity duration-300"
-        style={{ opacity: visible ? 1 : 0 }}
+        key={safeIndex}
+        className="min-w-0 truncate text-[10px] text-zinc-400 animate-fade-in"
       >
         {sentences[safeIndex]}
       </p>

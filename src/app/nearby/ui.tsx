@@ -144,18 +144,15 @@ function SellerCell({
 function Ticker({ items }: { items: TickerItem[] }) {
   const sentences = items.map((i) => i.sentence);
   const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     if (sentences.length <= 1 || paused) return;
-    const fadeOut = setTimeout(() => setVisible(false), 2700);
-    const advance = setTimeout(() => {
+    const timer = setInterval(() => {
       setIndex((i) => (i + 1) % sentences.length);
-      setVisible(true);
     }, 3000);
-    return () => { clearTimeout(fadeOut); clearTimeout(advance); };
-  }, [index, paused, sentences.length]);
+    return () => clearInterval(timer);
+  }, [paused, sentences.length]);
 
   if (sentences.length === 0) return null;
 
@@ -171,8 +168,8 @@ function Ticker({ items }: { items: TickerItem[] }) {
       onTouchEnd={() => setPaused(false)}
     >
       <p
-        className="min-w-0 truncate text-[10px] text-zinc-400 transition-opacity duration-300"
-        style={{ opacity: visible ? 1 : 0 }}
+        key={safeIndex}
+        className="min-w-0 truncate text-[10px] text-zinc-400 animate-fade-in"
       >
         {sentences[safeIndex]}
       </p>
