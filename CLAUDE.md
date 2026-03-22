@@ -1,138 +1,176 @@
-# Bloc — CLAUDE.md
+# Bloc — Project Context for Claude
 
-> Mobile-first, dark, realtime marketplace connecting buyers to sellers.
-> **Domain:** mybloc.me | **Stack:** Next.js 16 + Supabase + Tailwind CSS 4
+## What is Bloc?
+AI Agent Commerce Marketplace. Buyers broadcast intent in one sentence → seller agents respond in real-time.
+Core philosophy: **Quality wins over ad budget.** No pay-per-lead, ever.
+
+Positioning: "While others help businesses get discovered, Bloc connects them directly to customers in real time."
+
+Live at: **mybloc.me**
+GitHub: **chalengsak55/bloc**
+Vercel team: chalengsakth-1714
+
+---
+
+## Stack
+- **Framework:** Next.js (App Router)
+- **Styling:** Tailwind CSS
+- **Database:** Supabase (PostgreSQL + Realtime)
+- **Auth:** Google OAuth + Magic link email
+- **Storage:** Supabase Storage (avatars, messages-media, storefront-media buckets)
+- **AI:** Claude API (Anthropic) — reserved for future AI chat feature
+- **Deploy:** Vercel (auto-deploy on push to main)
 
 ---
 
 ## Brand
-
-| Token | Value |
-|-------|-------|
-| Background | `#0d0d12` |
-| Foreground | `#f4f4f5` |
-| Purple | `#7c5ce8` |
-| Blue | `#4d9ef5` |
-| Cyan | `#00d4c8` |
-| Gradient | `linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)` |
-| Heading font | Instrument Serif |
-| Body font | DM Sans |
-| Mono font | Geist Mono |
-| Tagline | "Quality wins. Not ad budget." |
-
----
-
-## Completed — Buyer Features
-
-- **Auth** — Google OAuth (PKCE) + Magic Link email via Supabase
-- **Broadcast** — one-sentence request with geolocation capture, draft recovery via localStorage
-- **Request Results** (`/broadcast/[id]`) — live activity feed, "Your 3 options" matched sellers, confirm/reject, re-run match
-- **Nearby** (`/nearby`) — 3-col seller grid, live online status (green/yellow/grey ping), category pill filters, search, Haversine distance, realtime ticker
-- **Inbox** (`/inbox`) — conversation list, online badge, deterministic gradient avatars, last-message preview
-- **Profile** (`/profile`) — edit name/avatar (Supabase Storage `avatars` bucket), active & past broadcasts, sign out
-- **Direct Message** (`/message/[sellerId]`) — message a specific seller with draft passthrough
-
-## Completed — Seller Features
-
-- **Onboarding** (`/seller/onboard`) — paste link URL (IG, FB, website, Google Maps) → auto-fill via `/api/scrape`, manual edit, save → go online
-- **Dashboard** (`/seller/dashboard`) — online/offline toggle, incoming requests feed (realtime), reply composer with text + media upload (jpg/png/mp4, 50 MB max via Supabase `media` bucket), draft persistence
-- **Storefront** (`/seller/[id]`) — public profile, distance badge, contact link, message button
-
-## Completed — Realtime
-
-- Supabase Realtime channels for: homepage ticker, nearby sellers, request activities, seller dashboard, inbox conversations
-- All channels clean up on unmount
+```
+--purple: #7c5ce8
+--blue: #4d9ef5
+--cyan: #00d4c8
+--grad: linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)
+--bg: #0d0d12
+```
+- **Headings:** Instrument Serif
+- **Body:** DM Sans
 
 ---
 
 ## Auth Rules
-
-- Middleware guards `/seller/dashboard` and `/seller/onboard` — redirects unauthenticated users to `/auth?redirect=…`
-- `/seller/[id]` storefronts are public (no auth required)
-- Session stored in cookies via `@supabase/ssr`
-- Protected API routes use `supabase.auth.getUser()` server-side
+- Nearby (browse) → no auth
+- Nearby (message) → auth required
+- Broadcast → auth required
+- Seller onboarding Steps 1-2 → no auth
+- Seller onboarding publish (Step 3) → auth required
+- Google OAuth + Magic Link both supported
+- Same auth for buyer + seller (role differs only)
 
 ---
 
 ## Key Files
-
-| File | Purpose |
-|------|---------|
-| `src/app/page.tsx` | Landing — logo, LivePill, mode cards, bottom tab bar |
-| `src/app/broadcast/ui.tsx` | Broadcast composer |
-| `src/app/broadcast/[id]/ui.tsx` | Request results (live activity + matches) |
-| `src/app/nearby/ui.tsx` | Seller grid with filters & ticker |
-| `src/app/inbox/ui.tsx` | Conversation list |
-| `src/app/inbox/[conversationId]/ui.tsx` | Chat view |
-| `src/app/seller/onboard/ui.tsx` | Seller onboarding form |
-| `src/app/seller/dashboard/ui.tsx` | Seller dashboard + reply composer |
-| `src/app/seller/[id]/ui.tsx` | Public seller storefront |
-| `src/app/message/[sellerId]/ui.tsx` | Direct message to seller |
-| `src/app/profile/ui.tsx` | Buyer profile & broadcast history |
-| `src/app/auth/ui.tsx` | Google OAuth + Magic Link UI |
-| `src/middleware.ts` | Auth guard for protected routes |
-| `src/lib/supabase/client.ts` | Browser Supabase client factory |
-| `src/lib/supabase/server.ts` | Server Supabase clients (auth + service role) |
-| `src/components/ui/Button.tsx` | Polymorphic button/link component |
-| `src/components/ui/Input.tsx` | Styled input component |
-| `src/app/api/match/route.ts` | Seller matching algorithm |
-| `src/app/api/scrape/route.ts` | URL metadata scraper for onboarding |
-| `src/app/api/message/route.ts` | Direct message API |
-| `supabase/schema.sql` | Full DB schema + RLS + realtime config |
-| `supabase/seed.sql` | 12 fake Bangkok sellers for testing |
+```
+src/app/page.tsx → Home ✅
+src/app/nearby/page.tsx + ui.tsx → Nearby grid ✅
+src/app/broadcast/page.tsx + ui.tsx → Broadcast ✅
+src/app/broadcast/[id]/page.tsx → Broadcast results ✅
+src/app/seller/[id]/page.tsx + ui.tsx → Public storefront ✅ (rebuilt)
+src/app/seller/dashboard/page.tsx + ui.tsx → Seller dashboard ✅
+src/app/seller/onboarding/page.tsx + ui.tsx → Onboarding Step 1 ✅
+src/app/seller/onboarding/step2/ → Onboarding Step 2 ✅
+src/app/seller/onboarding/step3/ → Onboarding Step 3 ✅
+src/app/api/seller/publish/route.ts → Publish API ✅
+src/app/api/match/route.ts → Matching API
+src/app/api/message/route.ts → Direct message API
+src/app/api/scrape/ → URL scraper
+src/app/message/[sellerId]/ → Direct message ✅
+src/app/inbox/ → Inbox list + chat ✅
+src/app/profile/ → Buyer profile ✅
+src/app/auth/ → Auth + Google callback ✅
+src/app/live-ticker.tsx → Ticker ✅
+src/lib/supabase/ → Supabase helpers
+```
 
 ---
 
-## Database (Supabase)
+## What's Done ✅
 
-**Tables:** profiles, requests, matches, activities, conversations, messages
+### Buyer Side (COMPLETE)
+- Home — 2 mode cards, live ticker, tab bar
+- Auth — Google OAuth + Magic link, sign out
+- Broadcast — auth gate, results real-time
+- Nearby — photo grid, category pills, search bar, distance sort
+- Direct message → Inbox → Chat with image/video
+- Profile — edit name/photo, Active/Past broadcasts
 
-**Storage buckets:** `avatars` (public), `messages-media` (private)
+### Seller Onboarding (COMPLETE)
+- Step 1 — URL paste (auto-detect IG/TikTok/FB/website) or manual form
+- Step 2 — Review + edit info + choose CTA type (Book/Order/Quote/Contact)
+- Step 3 — Upload cover photo or video (optional) → Publish
+- Publish API — save to profiles table + upload to storefront-media bucket
 
-**Realtime:** All tables published to `supabase_realtime` with `REPLICA IDENTITY FULL`
+### Seller Storefront /seller/[id] (COMPLETE - Snapchat vibe)
+- Hero — fullscreen cover (image/video or gradient fallback), OPEN NOW pill
+- CTA buttons — dynamic based on cta_type field
+- Agent bar — "Agent active · Replies in ~2 min"
+- Trust metrics — Response rate, Avg reply, 😊 Smiles, Time on Bloc
+- Posts tab — 2-col photo/video grid (placeholder, needs seller_posts table)
+- Services tab — service list with prices (placeholder)
+- NO star ratings — trust metrics only
 
----
-
-## Seed Data (Bangkok)
-
-12 test sellers across 5 categories, spread around Bangkok coordinates:
-
-| Category | Sellers |
-|----------|---------|
-| hair | Tony Cuts (Sukhumvit), Mia Studio (Silom), Jay Barber (Ari) |
-| food | Ploy Kitchen (Thonglor), Alex Eats (Ekkamai), Nong Catering (Lat Phrao) |
-| home | James Fix-It (On Nut), Fern Clean Co. (Bearing) |
-| moving | Korn Movers (Bang Na), Eve Express Move (Ramkhamhaeng) |
-| tech | Mark Tech (Asok), Pim IT Support (Phrom Phong) |
-
----
-
-## Next: Seller Onboarding Plan (v2)
-
-Replace the current free-form onboarding with a guided 3-step flow:
-
-### Step 1 — Paste Your Link
-Seller pastes their Instagram / Facebook / website / Google Maps URL.
-System scrapes metadata via `/api/scrape` to pre-fill profile fields.
-
-### Step 2 — Pick Your Vibe
-Visual vibe picker — seller selects a style/mood that represents their brand.
-Options could include: minimal, bold, friendly, luxury, playful, etc.
-Selected vibe informs the tone and layout of auto-generated templates.
-
-### Step 3 — Choose & Customize Your Template
-- Call **Claude API** with scraped profile data + selected vibe
-- Generate **4 storefront template options** (layout, copy, color accent)
-- Seller previews all 4 and picks one
-- Seller can customize: edit text, swap photos, adjust colors
-- Save → profile goes live
+### Seller Dashboard (COMPLETE)
+- Online/Offline toggle
+- Incoming requests feed (realtime)
+- Reply composer + media upload
 
 ---
 
-## Commands
+## Storefront Design Decisions
+- **Snapchat vibe** — bold, rounded, American Gen Z, dark bg
+- **Layout fixed** — same for all sellers, no template options
+- **Color fixed** — purple/blue/cyan brand, no per-seller color (Phase 2)
+- **No star ratings** — replaced by trust metrics (response rate, smiles, etc)
+- **😊 Smiles** — replaces "jobs done", universal across all categories
+- **CTA dynamic** — seller chooses: Book / Order / Quote / Contact
+- **Content feed** = seller-owned posts (business content, not UGC)
+- **UGC** = Phase 2, video reviews inside storefront only
+- **Live streaming** = Phase 2
 
+---
+
+## Supabase Tables
+- `profiles` — id, display_name, category, location_text, bio, avatar_url, cover_url, cta_type, role, is_online, lat, lng
+- `requests` — buyer broadcasts
+- `conversations` + `messages` — chat system
+- `seller_posts` — ❌ NOT YET CREATED (needed for Posts tab)
+
+## Supabase Storage Buckets
+- `avatars` — user profile photos
+- `messages-media` — chat image/video
+- `storefront-media` — seller cover photo/video ✅
+
+---
+
+## Next Priorities
+1. ❌ `seller_posts` table + seller can upload posts from dashboard
+2. ❌ Posts tab shows real content from seller_posts
+3. ❌ Nearby grid supports video content
+4. ❌ Smiles feature — buyer taps 😊 after conversation ends
+5. ❌ Stripe payment ($50/yr Basic, $150/yr Pro)
+6. ❌ Short URL mybloc.me/w/[slug] + Open Graph sharing
+7. ❌ Broadcast auto-expiry after 24h
+8. ❌ Push notifications
+
+---
+
+## Known Issues
+- Posts tab currently shows placeholder/empty state — needs seller_posts table
+- Services tab uses hardcoded placeholder data — needs services table or JSON field
+- Trust metrics are hardcoded — needs real data from DB
+- Storefront cover_url not yet showing in hero (needs to read from profiles)
+- Inbox fullscreen image/video — not built
+
+---
+
+## Competitors
+- Thumbtack, Bark → pay-per-lead
+- Bloc: agent-first, no pay-per-lead, quality wins
+
+## Target
+- SF Bay Area local services first
+- Solo founder, Meta + Google background
+- Build traction → investors come
+
+---
+
+## How to Run
 ```bash
-npm run dev      # http://localhost:3000
-npm run build    # Production build
-npm run lint     # ESLint
+cd "mybloc with claude/bloc"
+npm run dev
+```
+
+## Deploy
+```bash
+git add . && git commit -m "msg" && git push
+# Vercel auto-deploys on push to main
+# ANTHROPIC_API_KEY in Vercel env (reserved for future use)
 ```
