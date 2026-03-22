@@ -37,54 +37,137 @@ const vibes = [
 
 type VibeId = (typeof vibes)[number]["id"];
 
+/* ── Categories ── */
+
+const categories = ["Hair", "Food", "Home", "Moving", "Tech", "Barber", "Other"] as const;
+
+/* ── Input mode ── */
+
+type InputMode = "url" | "manual";
+
 /* ── Component ── */
 
 export function OnboardingFlow() {
+  const [mode, setMode] = useState<InputMode>("url");
   const [url, setUrl] = useState("");
+  const [manual, setManual] = useState({ name: "", category: "", location: "", description: "" });
   const [selectedVibe, setSelectedVibe] = useState<VibeId | null>(null);
   const [loading, setLoading] = useState(false);
 
   const platform = url.startsWith("http") ? detectPlatform(url) : null;
-  const canSubmit = !!platform && !!selectedVibe && !loading;
+
+  const urlReady = mode === "url" && !!platform;
+  const manualReady =
+    mode === "manual" &&
+    manual.name.trim().length >= 2 &&
+    !!manual.category &&
+    manual.location.trim().length >= 2;
+  const canSubmit = (urlReady || manualReady) && !!selectedVibe && !loading;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
-      const data = await res.json();
-      if (!data.ok) throw new Error(data.error ?? "Scrape failed");
-      // TODO: pass scraped data + vibe to Step 2/3
-      console.log("Scraped:", data, "Vibe:", selectedVibe);
-      alert(`Scrape OK! Next step coming soon.\n\nTitle: ${data.title ?? "—"}\nVibe: ${selectedVibe}`);
+      if (mode === "url") {
+        const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (!data.ok) throw new Error(data.error ?? "Scrape failed");
+        // TODO: pass scraped data + vibe to Step 2/3
+        console.log("Scraped:", data, "Vibe:", selectedVibe);
+        alert(`Scrape OK! Next step coming soon.\n\nTitle: ${data.title ?? "—"}\nVibe: ${selectedVibe}`);
+      } else {
+        // TODO: pass manual data + vibe to Step 2/3
+        console.log("Manual:", manual, "Vibe:", selectedVibe);
+        alert(`Manual info saved! Next step coming soon.\n\nName: ${manual.name}\nVibe: ${selectedVibe}`);
+      }
     } catch (err) {
       alert(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
-  }, [canSubmit, url, selectedVibe]);
+  }, [canSubmit, mode, url, manual, selectedVibe]);
 
   return (
     <div className="flex flex-col gap-10 animate-[fade-in_0.3s_ease-out]">
-      {/* ── URL Input ── */}
+      {/* ── URL or Manual Input ── */}
       <section>
-        <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
-          Your link
-        </label>
-        <div className="relative">
-          <Input
-            type="url"
-            placeholder="Paste your Instagram, TikTok, or website URL"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            autoFocus
-          />
-          {platform && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-zinc-400">
-              {platformLabels[platform].emoji} {platformLabels[platform].label}
-            </span>
-          )}
-        </div>
+        {mode === "url" ? (
+          <>
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
+              Your link
+            </label>
+            <div className="relative">
+              <Input
+                type="url"
+                placeholder="Paste your Instagram, TikTok, or website URL"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                autoFocus
+              />
+              {platform && (
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-1.5 text-xs text-zinc-400">
+                  {platformLabels[platform].emoji} {platformLabels[platform].label}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setMode("manual")}
+              className="mt-3 text-xs text-zinc-500 transition hover:text-zinc-300"
+            >
+              I&apos;m just getting started &rarr;
+            </button>
+          </>
+        ) : (
+          <>
+            <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
+              Tell us about your business
+            </label>
+            <div className="flex flex-col gap-3">
+              <Input
+                type="text"
+                placeholder="Business name"
+                value={manual.name}
+                onChange={(e) => setManual((m) => ({ ...m, name: e.target.value }))}
+                autoFocus
+              />
+              <select
+                value={manual.category}
+                onChange={(e) => setManual((m) => ({ ...m, category: e.target.value }))}
+                className="h-12 w-full appearance-none rounded-2xl border border-white/10 bg-black/30 px-4 text-sm text-zinc-100 outline-none ring-1 ring-transparent transition focus:border-white/20 focus:ring-fuchsia-400/20"
+              >
+                <option value="" disabled className="bg-[#0d0d12] text-zinc-500">
+                  Category
+                </option>
+                {categories.map((c) => (
+                  <option key={c} value={c.toLowerCase()} className="bg-[#0d0d12]">
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <Input
+                type="text"
+                placeholder="City / neighborhood"
+                value={manual.location}
+                onChange={(e) => setManual((m) => ({ ...m, location: e.target.value }))}
+              />
+              <textarea
+                placeholder="Short description of what you do"
+                value={manual.description}
+                onChange={(e) => setManual((m) => ({ ...m, description: e.target.value }))}
+                rows={3}
+                className="w-full resize-none rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none ring-1 ring-transparent transition focus:border-white/20 focus:ring-fuchsia-400/20"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setMode("url")}
+              className="mt-3 text-xs text-zinc-500 transition hover:text-zinc-300"
+            >
+              &larr; I have a link instead
+            </button>
+          </>
+        )}
       </section>
 
       {/* ── Vibe Picker ── */}
