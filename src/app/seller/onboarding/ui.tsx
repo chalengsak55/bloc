@@ -27,17 +27,6 @@ const platformLabels: Record<Platform, { emoji: string; label: string }> = {
   website: { emoji: "🌐", label: "Website" },
 };
 
-/* ── Vibe options ── */
-
-const vibes = [
-  { id: "chill", emoji: "🌿", label: "Chill & Friendly", desc: "Warm, approachable, relaxed" },
-  { id: "professional", emoji: "💼", label: "Professional", desc: "Clean, trustworthy, polished" },
-  { id: "bold", emoji: "⚡", label: "Bold & Edgy", desc: "High energy, standout, creative" },
-  { id: "ai", emoji: "✨", label: "Let AI decide", desc: "We'll pick the best fit for you" },
-] as const;
-
-type VibeId = (typeof vibes)[number]["id"];
-
 /* ── Categories ── */
 
 const categories = ["Hair", "Food", "Home", "Moving", "Tech", "Barber", "Other"] as const;
@@ -53,7 +42,6 @@ export function OnboardingFlow() {
   const [mode, setMode] = useState<InputMode>("url");
   const [url, setUrl] = useState("");
   const [manual, setManual] = useState({ name: "", category: "", location: "", description: "" });
-  const [selectedVibe, setSelectedVibe] = useState<VibeId | null>(null);
   const [loading, setLoading] = useState(false);
 
   const platform = url.startsWith("http") ? detectPlatform(url) : null;
@@ -64,7 +52,7 @@ export function OnboardingFlow() {
     manual.name.trim().length >= 2 &&
     !!manual.category &&
     manual.location.trim().length >= 2;
-  const canSubmit = (urlReady || manualReady) && !!selectedVibe && !loading;
+  const canSubmit = (urlReady || manualReady) && !loading;
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -76,21 +64,20 @@ export function OnboardingFlow() {
         if (!data.ok) throw new Error(data.error ?? "Scrape failed");
         sessionStorage.setItem(
           "onboarding",
-          JSON.stringify({ scrapedData: data, vibe: selectedVibe }),
+          JSON.stringify({ scrapedData: data }),
         );
       } else {
         sessionStorage.setItem(
           "onboarding",
-          JSON.stringify({ manualData: manual, vibe: selectedVibe }),
+          JSON.stringify({ manualData: manual }),
         );
       }
-      // TODO: next step of onboarding flow
-      router.push("/seller/dashboard");
+      router.push("/seller/onboarding/step2");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
     }
-  }, [canSubmit, mode, url, manual, selectedVibe, router]);
+  }, [canSubmit, mode, url, manual, router]);
 
   return (
     <div className="flex flex-col gap-10 animate-[fade-in_0.3s_ease-out]">
@@ -175,47 +162,6 @@ export function OnboardingFlow() {
         )}
       </section>
 
-      {/* ── Vibe Picker ── */}
-      <section>
-        <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
-          Pick your vibe
-        </label>
-        <div className="grid grid-cols-2 gap-3">
-          {vibes.map((v) => {
-            const active = selectedVibe === v.id;
-            return (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => setSelectedVibe(v.id)}
-                className={`relative flex flex-col items-start gap-1 rounded-2xl border p-4 text-left transition-all duration-200 ${
-                  active
-                    ? "border-transparent bg-white/[0.06]"
-                    : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
-                }`}
-              >
-                {/* gradient border when active */}
-                {active && (
-                  <span
-                    className="pointer-events-none absolute inset-0 rounded-2xl"
-                    style={{
-                      padding: "1px",
-                      background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
-                      WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
-                      WebkitMaskComposite: "xor",
-                      maskComposite: "exclude",
-                    }}
-                  />
-                )}
-                <span className="text-xl">{v.emoji}</span>
-                <span className="text-sm font-semibold text-zinc-100">{v.label}</span>
-                <span className="text-xs leading-snug text-zinc-500">{v.desc}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
       {/* ── CTA ── */}
       <button
         type="button"
@@ -228,7 +174,7 @@ export function OnboardingFlow() {
             : "rgba(255,255,255,0.06)",
         }}
       >
-        {loading ? "Generating…" : "Generate my storefront →"}
+        {loading ? "Loading…" : "Continue →"}
       </button>
     </div>
   );
