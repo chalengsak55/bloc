@@ -131,6 +131,8 @@ function FullscreenViewer({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [playIcon, setPlayIcon] = useState<"play" | "pause" | null>(null);
+  const iconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Lock body scroll
   useEffect(() => {
@@ -180,11 +182,18 @@ function FullscreenViewer({
     return () => observer.disconnect();
   }, [posts]);
 
-  // Tap to toggle play/pause
+  // Tap to toggle play/pause with icon flash
   const handleVideoTap = useCallback((e: React.MouseEvent<HTMLVideoElement>) => {
     const v = e.currentTarget;
-    if (v.paused) v.play().catch(() => {});
-    else v.pause();
+    if (v.paused) {
+      v.play().catch(() => {});
+      setPlayIcon("play");
+    } else {
+      v.pause();
+      setPlayIcon("pause");
+    }
+    if (iconTimer.current) clearTimeout(iconTimer.current);
+    iconTimer.current = setTimeout(() => setPlayIcon(null), 600);
   }, []);
 
   return (
@@ -255,6 +264,26 @@ function FullscreenViewer({
             </div>
           ))}
         </div>
+
+        {/* Play/Pause icon flash */}
+        {playIcon && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            <div
+              className="flex h-16 w-16 items-center justify-center rounded-full bg-black/50 backdrop-blur-sm"
+              style={{ animation: "pulse 0.3s ease-out" }}
+            >
+              {playIcon === "play" ? (
+                <svg className="ml-1 h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M8 5v14l11-7z" />
+                </svg>
+              ) : (
+                <svg className="h-8 w-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M6 4h4v16H6zM14 4h4v16h-4z" />
+                </svg>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Dot indicators */}
         {posts.length > 1 && (
