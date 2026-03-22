@@ -352,6 +352,14 @@ export function SellerDashboard() {
               </>
             )}
           </button>
+          {me && (
+            <Link
+              href={`/seller/${me.id}`}
+              className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+            >
+              View storefront
+            </Link>
+          )}
           <button
             onClick={signOut}
             className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
