@@ -61,15 +61,18 @@ export function TemplatePicker() {
   /* ── Loading ── */
   if (loading) {
     return (
-      <div className="flex flex-col gap-4 animate-[fade-in_0.3s_ease-out]">
-        <div className="text-center text-sm text-zinc-400">
-          Generating your templates...
+      <div className="flex flex-col gap-6 animate-[fade-in_0.3s_ease-out]">
+        <div className="flex items-center justify-center gap-3">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-purple-400" />
+          <span className="text-sm text-zinc-400">Generating your templates...</span>
+          <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-400" style={{ animationDelay: "0.3s" }} />
         </div>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-4">
           {[1, 2, 3, 4].map((i) => (
             <div
               key={i}
-              className="h-48 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]"
+              className="h-32 animate-pulse rounded-2xl border border-white/10 bg-white/[0.03]"
+              style={{ animationDelay: `${i * 0.1}s` }}
             />
           ))}
         </div>
@@ -96,26 +99,27 @@ export function TemplatePicker() {
   /* ── Template cards ── */
   return (
     <div className="flex flex-col gap-8 animate-[fade-in_0.3s_ease-out]">
-      <div className="grid grid-cols-2 gap-3">
-        {templates.map((t) => {
+      <div className="flex flex-col gap-4">
+        {templates.map((t, i) => {
           const active = selected === t.id;
           return (
             <button
               key={t.id}
               type="button"
               onClick={() => setSelected(t.id)}
-              className={`relative flex flex-col items-start gap-2 rounded-2xl border p-4 text-left transition-all duration-200 ${
+              className={`group relative overflow-hidden rounded-2xl border p-5 text-left transition-all duration-300 ${
                 active
-                  ? "border-transparent bg-white/[0.06]"
-                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05]"
+                  ? "border-transparent bg-white/[0.08] scale-[1.02] shadow-[0_0_30px_-5px_rgba(124,92,232,0.3)]"
+                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/15"
               }`}
+              style={{ animationDelay: `${i * 0.08}s` }}
             >
               {/* gradient border when active */}
               {active && (
                 <span
                   className="pointer-events-none absolute inset-0 rounded-2xl"
                   style={{
-                    padding: "1px",
+                    padding: "1.5px",
                     background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
                     WebkitMask: "linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0)",
                     WebkitMaskComposite: "xor",
@@ -124,28 +128,59 @@ export function TemplatePicker() {
                 />
               )}
 
-              {/* Color swatch */}
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="h-3.5 w-3.5 rounded-full"
-                  style={{ backgroundColor: t.colorScheme.primary }}
-                />
-                <span
-                  className="h-3.5 w-3.5 rounded-full"
-                  style={{ backgroundColor: t.colorScheme.secondary }}
-                />
+              {/* Color accent bar at top */}
+              <div
+                className="absolute left-0 top-0 h-1 w-full opacity-60 transition-opacity group-hover:opacity-100"
+                style={{
+                  background: `linear-gradient(90deg, ${t.colorScheme.primary}, ${t.colorScheme.secondary})`,
+                }}
+              />
+
+              <div className="flex items-start gap-4 pt-1">
+                {/* Color swatch */}
+                <div className="flex flex-col gap-1.5 pt-0.5">
+                  <span
+                    className="h-5 w-5 rounded-lg shadow-lg"
+                    style={{
+                      backgroundColor: t.colorScheme.primary,
+                      boxShadow: `0 0 12px ${t.colorScheme.primary}40`,
+                    }}
+                  />
+                  <span
+                    className="h-5 w-5 rounded-lg shadow-lg"
+                    style={{
+                      backgroundColor: t.colorScheme.secondary,
+                      boxShadow: `0 0 12px ${t.colorScheme.secondary}40`,
+                    }}
+                  />
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[15px] font-semibold text-zinc-100">{t.name}</span>
+                    {active && (
+                      <span className="rounded-full bg-gradient-to-r from-purple-500/20 to-cyan-500/20 px-2 py-0.5 text-[10px] font-medium text-cyan-300">
+                        Selected
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 text-[13px] leading-snug text-zinc-400">{t.tagline}</p>
+                  <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-zinc-500">{t.bio}</p>
+
+                  {/* Services pills */}
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {t.services.slice(0, 3).map((s) => (
+                      <span
+                        key={s}
+                        className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-medium text-zinc-400"
+                      >
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               </div>
-
-              {/* Name */}
-              <span className="text-sm font-semibold text-zinc-100">{t.name}</span>
-
-              {/* Tagline */}
-              <span className="text-xs text-zinc-400">{t.tagline}</span>
-
-              {/* Bio preview */}
-              <span className="line-clamp-2 text-xs leading-relaxed text-zinc-500">
-                {t.bio}
-              </span>
             </button>
           );
         })}
