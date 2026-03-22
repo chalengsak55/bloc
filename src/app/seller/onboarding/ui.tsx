@@ -115,7 +115,7 @@ export function OnboardingFlow() {
               onClick={() => setMode("manual")}
               className="mt-3 text-xs text-zinc-500 transition hover:text-zinc-300"
             >
-              I&apos;m just getting started &rarr;
+              No website or social media? Fill in manually &rarr;
             </button>
           </>
         ) : (
