@@ -1,18 +1,8 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { getEnv } from "@/lib/env";
 
 export async function POST(request: Request) {
-  /* ── Auth ── */
-  const supabase = await createSupabaseServerClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
   /* ── Env ── */
   const env = getEnv();
   if (!env.ANTHROPIC_API_KEY) {

@@ -34,7 +34,7 @@ export async function middleware(request: NextRequest) {
   // /seller/[id] (public storefronts) is intentionally excluded.
   const { pathname } = request.nextUrl;
   const isProtectedSeller =
-    pathname.startsWith("/seller/dashboard") || pathname.startsWith("/seller/onboard");
+    pathname.startsWith("/seller/dashboard") || pathname === "/seller/onboard";
   if (isProtectedSeller && !user) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = "/auth";
