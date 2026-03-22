@@ -268,7 +268,7 @@ function FullscreenViewer({
               {/* Spark flash centered */}
               {sparkFlashId === p.id && <SparkFlash />}
               {/* Spark — TikTok sidebar */}
-              <div className="absolute bottom-32 right-3 z-20">
+              <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2">
                 <PostSparkButton
                   postId={p.id}
                   count={sparkCounts[p.id] ?? 0}
