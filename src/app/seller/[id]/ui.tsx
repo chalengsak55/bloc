@@ -217,9 +217,9 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                       className="h-full w-full object-cover"
                     />
                   )}
-                  {p.caption && (
+                  {p.caption && !/^\s*</.test(p.caption) && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6">
-                      <p className="line-clamp-2 text-[11px] leading-snug text-white">{p.caption}</p>
+                      <p className="line-clamp-2 text-[11px] leading-snug text-white">{p.caption.replace(/<[^>]*>/g, "")}</p>
                     </div>
                   )}
                 </div>
@@ -257,7 +257,7 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
   const hue = getHue(seller.id);
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#0d0d12]">
+    <main className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-[#0d0d12]">
       {/* ── Hero cover ── */}
       <div
         className="relative flex min-h-[56vh] flex-col justify-end"
