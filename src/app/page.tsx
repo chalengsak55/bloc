@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LivePill } from "./home-pill";
 import { LiveTicker } from "./live-ticker";
+import { TabBar } from "@/components/TabBar";
 
 export default function Home() {
   return (
@@ -149,58 +150,7 @@ export default function Home() {
       </div>
     </main>
 
-    {/* ── Bottom tab bar ────────────────────────────────────────────── */}
-    <nav className="fixed inset-x-0 bottom-0 z-50 border-t border-white/[0.08] bg-black/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-xl items-end justify-around px-2 pb-safe pt-2">
-
-        {/* Home — active */}
-        <div className="flex flex-col items-center gap-0.5 pb-1">
-          <svg className="h-5 w-5 text-[#7c5ce8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 9.75L12 3l9 6.75V21a.75.75 0 01-.75.75H15.75v-5.25a.75.75 0 00-.75-.75h-6a.75.75 0 00-.75.75V21.75H3.75A.75.75 0 013 21V9.75z" />
-          </svg>
-          <span className="text-[10px] text-[#7c5ce8]">Home</span>
-        </div>
-
-        {/* Nearby */}
-        <Link href="/nearby" className="flex flex-col items-center gap-0.5 pb-1">
-          <svg className="h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503-9.998l2.747-.756A.75.75 0 0119 7.944v9.32a.75.75 0 01-.503.712l-3 .822a.75.75 0 01-.397 0l-4.2-1.155a.75.75 0 00-.397 0l-2.747.756A.75.75 0 015 17.056V7.736a.75.75 0 01.503-.712l3-.822a.75.75 0 01.397 0l4.2 1.155a.75.75 0 00.397 0z" />
-          </svg>
-          <span className="text-[10px] text-zinc-500">Nearby</span>
-        </Link>
-
-        {/* Broadcast FAB */}
-        <Link href="/broadcast" className="relative -mt-6 flex flex-col items-center">
-          <span className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-40" style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)", animation: "fab-ripple 2s ease-out infinite" }} />
-          <span className="absolute inset-0 m-auto h-14 w-14 rounded-full opacity-20" style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)", animation: "fab-ripple 2s ease-out 0.6s infinite" }} />
-          <span className="relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg" style={{ background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)" }}>
-            <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <circle cx="12" cy="12" r="2.5" fill="currentColor" stroke="none" />
-              <path strokeLinecap="round" d="M7 17A7 7 0 017 7" />
-              <path strokeLinecap="round" d="M17 7a7 7 0 010 10" />
-            </svg>
-          </span>
-          <span className="mt-1 text-[10px] text-zinc-400">Broadcast</span>
-        </Link>
-
-        {/* Inbox */}
-        <Link href="/inbox" className="flex flex-col items-center gap-0.5 pb-1">
-          <svg className="h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 13.5h3.86a2.25 2.25 0 012.012 1.244l.256.512a2.25 2.25 0 002.013 1.244h3.218a2.25 2.25 0 002.013-1.244l.256-.512a2.25 2.25 0 012.013-1.244h3.859M12 3v8.25m0 0l-3-3m3 3l3-3" />
-          </svg>
-          <span className="text-[10px] text-zinc-500">Inbox</span>
-        </Link>
-
-        {/* Profile */}
-        <Link href="/profile" className="flex flex-col items-center gap-0.5 pb-1">
-          <svg className="h-5 w-5 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-          </svg>
-          <span className="text-[10px] text-zinc-500">Profile</span>
-        </Link>
-
-      </div>
-    </nav>
+    <TabBar active="Home" />
     </>
   );
 }
