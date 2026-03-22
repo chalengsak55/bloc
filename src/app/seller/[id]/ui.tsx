@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -120,7 +120,20 @@ type SellerPost = {
 
 // ─── Fullscreen viewer ───────────────────────────────────────────────────────
 
-function FullscreenViewer({ post, onClose }: { post: SellerPost; onClose: () => void }) {
+function FullscreenViewer({
+  posts,
+  initialIndex,
+  onClose,
+}: {
+  posts: SellerPost[];
+  initialIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(initialIndex);
+  const touchStartY = useRef(0);
+  const post = posts[index];
+
+  // Lock body scroll
   useEffect(() => {
     document.body.style.overflow = "hidden";
     return () => {
@@ -128,47 +141,86 @@ function FullscreenViewer({ post, onClose }: { post: SellerPost; onClose: () => 
     };
   }, []);
 
+  // Navigate with swipe
+  const goNext = useCallback(() => {
+    setIndex((i) => (i + 1) % posts.length);
+  }, [posts.length]);
+
+  const goPrev = useCallback(() => {
+    setIndex((i) => (i - 1 + posts.length) % posts.length);
+  }, [posts.length]);
+
+  // Touch handlers
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartY.current = e.touches[0].clientY;
+  }, []);
+
+  const handleTouchEnd = useCallback(
+    (e: React.TouchEvent) => {
+      const dy = touchStartY.current - e.changedTouches[0].clientY;
+      if (Math.abs(dy) < 60) return; // ignore small swipes
+      if (dy > 0) goNext();   // swipe up → next
+      else goPrev();          // swipe down → prev
+    },
+    [goNext, goPrev],
+  );
+
   return (
     <div
-      className="fixed inset-0 flex items-center justify-center"
+      className="fixed inset-0"
       style={{ zIndex: 9999, backgroundColor: "#000" }}
       onClick={onClose}
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
     >
       {/* Close button */}
       <button
         type="button"
         onClick={onClose}
-        className="fixed right-4 top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
+        className="absolute right-4 top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      {/* Content */}
-      {post.media_type === "video" ? (
-        <div
-          className="relative mx-auto flex h-full items-center"
-          style={{ maxWidth: "calc(100vh * 9 / 16)" }}
-          onClick={(e) => e.stopPropagation()}
-        >
+      {/* Media — full screen */}
+      <div
+        className="flex h-full w-full items-center justify-center"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {post.media_type === "video" ? (
           <video
+            key={post.id}
             src={post.media_url}
             autoPlay
             playsInline
             controls
-            className="h-full w-full rounded-none object-contain"
-            style={{ maxHeight: "100vh" }}
+            className="h-full w-full object-contain"
           />
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            key={post.id}
+            src={post.media_url}
+            alt={post.caption ?? "Post"}
+            className="h-full w-full object-contain"
+          />
+        )}
+      </div>
+
+      {/* Dot indicators */}
+      {posts.length > 1 && (
+        <div className="absolute bottom-8 left-0 right-0 z-10 flex items-center justify-center gap-1.5">
+          {posts.map((_, i) => (
+            <span
+              key={i}
+              className={`h-1.5 rounded-full transition-all ${
+                i === index ? "w-4 bg-white" : "w-1.5 bg-white/30"
+              }`}
+            />
+          ))}
         </div>
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={post.media_url}
-          alt={post.caption ?? "Post"}
-          onClick={(e) => e.stopPropagation()}
-          className="max-h-screen max-w-full object-contain"
-        />
       )}
     </div>
   );
@@ -188,7 +240,7 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   const [posts, setPosts] = useState<SellerPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
-  const [viewingPost, setViewingPost] = useState<SellerPost | null>(null);
+  const [viewingIndex, setViewingIndex] = useState<number | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -274,7 +326,7 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                   key={p.id}
                   className="relative aspect-square cursor-pointer overflow-hidden rounded-2xl"
                   style={{ backgroundColor: "#111" }}
-                  onClick={() => setViewingPost(p)}
+                  onClick={() => setViewingIndex(posts.indexOf(p))}
                 >
                   {p.media_type === "video" ? (
                     <video
@@ -336,10 +388,11 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
       </div>
 
       {/* ── Fullscreen post viewer ── */}
-      {viewingPost && (
+      {viewingIndex !== null && posts[viewingIndex] && (
         <FullscreenViewer
-          post={viewingPost}
-          onClose={() => setViewingPost(null)}
+          posts={posts}
+          initialIndex={viewingIndex}
+          onClose={() => setViewingIndex(null)}
         />
       )}
     </div>
