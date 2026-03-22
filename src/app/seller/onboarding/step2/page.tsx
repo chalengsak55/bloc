@@ -16,7 +16,7 @@ export default function Step2Page() {
         Review your info
       </h1>
       <p className="mt-2 text-sm text-zinc-400">
-        Make sure everything looks right before we build your storefront.
+        Review and edit your info before publishing.
       </p>
 
       <div className="mt-10">

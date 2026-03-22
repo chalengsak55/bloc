@@ -16,7 +16,7 @@ export default function SellerOnboardingPage() {
         Set up your storefront
       </h1>
       <p className="mt-2 text-sm text-zinc-400">
-        Paste your link, pick a vibe, and we&apos;ll build it for you.
+        Tell us about your business and we&apos;ll set up your storefront.
       </p>
 
       <div className="mt-10">

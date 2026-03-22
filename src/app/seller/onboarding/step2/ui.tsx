@@ -43,12 +43,12 @@ export function ReviewForm() {
 
       if (data.manualData) {
         setName(data.manualData.name ?? "");
-        setCategory(data.manualData.category ?? "");
+        setCategory((data.manualData.category ?? "").toLowerCase().trim());
         setLocation(data.manualData.location ?? "");
         setDescription(data.manualData.description ?? "");
       } else if (data.scrapedData) {
         setName(data.scrapedData.title ?? "");
-        setCategory(data.scrapedData.category ?? "");
+        setCategory((data.scrapedData.category ?? "").toLowerCase().trim());
         setLocation(data.scrapedData.location ?? "");
         setDescription(data.scrapedData.description ?? "");
       }
