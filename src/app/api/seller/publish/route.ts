@@ -87,6 +87,7 @@ export async function POST(req: Request) {
   /* ── Upsert profile ── */
   const profileUpdate: Record<string, unknown> = {
     id: user.id,
+    role: "seller",
     is_seller: true,
     display_name: displayName,
     category,
