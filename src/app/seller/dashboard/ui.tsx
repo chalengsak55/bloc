@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -136,6 +136,69 @@ export function SellerDashboard() {
   }
 
   const [busy, setBusy] = useState(false);
+  const [postUploading, setPostUploading] = useState(false);
+  const [postToast, setPostToast] = useState<string | null>(null);
+  const postFileRef = useRef<HTMLInputElement>(null);
+
+  async function handleAddPost(file: File) {
+    if (postUploading) return;
+
+    const validTypes = ["image/jpeg", "image/png", "video/mp4"];
+    if (!validTypes.includes(file.type)) {
+      setStatus("Only JPG, PNG, or MP4 files are allowed.");
+      return;
+    }
+    if (file.size > 50 * 1024 * 1024) {
+      setStatus("File too large. Max 50MB.");
+      return;
+    }
+
+    setPostUploading(true);
+    setStatus(null);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        setStatus("Sign in to add a post.");
+        return;
+      }
+
+      const ext = file.name.split(".").pop() ?? (file.type.startsWith("image/") ? "jpg" : "mp4");
+      const path = `${user.id}/posts/${Date.now()}.${ext}`;
+
+      const { data: uploaded, error: uploadErr } = await supabase.storage
+        .from("storefront-media")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (uploadErr) throw uploadErr;
+
+      const { data: urlData } = supabase.storage
+        .from("storefront-media")
+        .getPublicUrl(uploaded.path);
+
+      const mediaType = file.type.startsWith("video/") ? "video" : "image";
+
+      const { error: insertErr } = await supabase.from("seller_posts").insert({
+        seller_id: user.id,
+        media_url: urlData.publicUrl,
+        media_type: mediaType,
+        caption: null,
+      });
+      if (insertErr) throw insertErr;
+
+      setPostToast("Post added!");
+      setTimeout(() => setPostToast(null), 3000);
+    } catch (e) {
+      const msg =
+        e && typeof e === "object" && "message" in e
+          ? String((e as { message: unknown }).message)
+          : "Failed to add post.";
+      setStatus(msg);
+    } finally {
+      setPostUploading(false);
+      if (postFileRef.current) postFileRef.current.value = "";
+    }
+  }
 
   async function reply() {
     if (!replyingTo) return;
@@ -249,12 +312,51 @@ export function SellerDashboard() {
         </div>
         {status ? <div className="mt-3 text-xs text-zinc-400">{status}</div> : null}
 
-        <button
-          onClick={signOut}
-          className="mt-4 text-xs text-zinc-600 transition-colors hover:text-zinc-400"
-        >
-          Sign out
-        </button>
+        {/* Add post + Sign out */}
+        <div className="mt-4 flex items-center gap-4">
+          <input
+            ref={postFileRef}
+            type="file"
+            accept="image/jpeg,image/png,video/mp4"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) handleAddPost(f);
+            }}
+          />
+          <button
+            onClick={() => postFileRef.current?.click()}
+            disabled={postUploading || !me}
+            className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3.5 py-1.5 text-xs font-semibold text-zinc-200 transition hover:bg-white/[0.08] disabled:opacity-40"
+          >
+            {postUploading ? (
+              <>
+                <span className="h-3 w-3 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Uploading…
+              </>
+            ) : (
+              <>
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Add post
+              </>
+            )}
+          </button>
+          <button
+            onClick={signOut}
+            className="text-xs text-zinc-600 transition-colors hover:text-zinc-400"
+          >
+            Sign out
+          </button>
+        </div>
+
+        {/* Post toast */}
+        {postToast && (
+          <div className="mt-3 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-400">
+            {postToast}
+          </div>
+        )}
       </div>
 
       <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6 backdrop-blur">
