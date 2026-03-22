@@ -131,10 +131,18 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   const [tab, setTab] = useState<"posts" | "services">("posts");
   const [posts, setPosts] = useState<SellerPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
+  const [isOwner, setIsOwner] = useState(false);
 
   useEffect(() => {
     let canceled = false;
-    async function loadPosts() {
+    async function load() {
+      // Check ownership
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!canceled && user) {
+        setIsOwner(user.id === seller.id);
+      }
+
+      // Load posts
       setPostsLoading(true);
       const { data } = await supabase
         .from("seller_posts")
@@ -147,9 +155,19 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
         setPostsLoading(false);
       }
     }
-    loadPosts();
+    load();
     return () => { canceled = true; };
   }, [supabase, seller.id]);
+
+  async function deletePost(postId: string) {
+    const { error } = await supabase
+      .from("seller_posts")
+      .delete()
+      .eq("id", postId);
+    if (!error) {
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+    }
+  }
 
   return (
     <div className="px-3.5 pb-16 pt-4">
@@ -216,6 +234,17 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                       alt={p.caption ?? "Post"}
                       className="h-full w-full object-cover"
                     />
+                  )}
+                  {isOwner && (
+                    <button
+                      type="button"
+                      onClick={() => deletePost(p.id)}
+                      className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-sm transition hover:bg-black/80 hover:text-white"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
                   )}
                   {p.caption && !/^\s*</.test(p.caption) && (
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6">
