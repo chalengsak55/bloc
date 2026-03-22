@@ -472,6 +472,15 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                         </svg>
                       </button>
                     )}
+                    {/* Spark count badge — visible to everyone */}
+                    {(sparkCounts[p.id] ?? 0) > 0 && (
+                      <div className="absolute bottom-1.5 left-1.5 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 backdrop-blur-sm">
+                        <svg className="h-3 w-3 text-[#7c5ce8]" viewBox="0 0 24 24" fill="currentColor">
+                          <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
+                        </svg>
+                        <span className="text-[10px] font-semibold text-white">{sparkCounts[p.id]}</span>
+                      </div>
+                    )}
                   </div>
                   {/* Spark under card */}
                   {!isOwner && (
