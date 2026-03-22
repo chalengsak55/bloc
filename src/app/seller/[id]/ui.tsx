@@ -134,6 +134,8 @@ function FullscreenViewer({
   sparkCounts: Record<string, number>;
   userSparks: Set<string>;
   toggleSpark: (postId: string) => void;
+  onSparkFlash: () => void;
+  sparkFlashId: string | null;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
@@ -261,6 +263,8 @@ function FullscreenViewer({
                 />
               )}
 
+              {/* Spark flash centered */}
+              {sparkFlashId && <SparkFlash />}
               {/* Spark — TikTok sidebar */}
               <div className="absolute bottom-24 right-3 z-10">
                 <PostSparkButton
@@ -268,6 +272,7 @@ function FullscreenViewer({
                   count={sparkCounts[p.id] ?? 0}
                   sparked={userSparks.has(p.id)}
                   onToggle={toggleSpark}
+                  onFlash={onSparkFlash}
                   variant="large"
                 />
               </div>
@@ -338,6 +343,15 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
 
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { sparkCounts, userSparks, toggleSpark } = usePostSparks(postIds, supabase);
+  const [sparkFlashId, setSparkFlashId] = useState<string | null>(null);
+  const sparkFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showSparkFlash = useCallback(() => {
+    const id = Math.random().toString(36);
+    setSparkFlashId(id);
+    if (sparkFlashTimer.current) clearTimeout(sparkFlashTimer.current);
+    sparkFlashTimer.current = setTimeout(() => setSparkFlashId(null), 800);
+  }, []);
 
   useEffect(() => {
     let canceled = false;
@@ -444,6 +458,8 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                         className="h-full w-full object-cover"
                       />
                     )}
+                    {/* Spark flash centered on card */}
+                    {sparkFlashId === p.id && <SparkFlash />}
                     {isOwner && (
                       <button
                         type="button"
@@ -464,6 +480,12 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                         count={sparkCounts[p.id] ?? 0}
                         sparked={userSparks.has(p.id)}
                         onToggle={toggleSpark}
+                        onFlash={() => {
+                          const id = p.id;
+                          setSparkFlashId(id);
+                          if (sparkFlashTimer.current) clearTimeout(sparkFlashTimer.current);
+                          sparkFlashTimer.current = setTimeout(() => setSparkFlashId(null), 800);
+                        }}
                       />
                     </div>
                   )}
@@ -503,6 +525,8 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
           sparkCounts={sparkCounts}
           userSparks={userSparks}
           toggleSpark={toggleSpark}
+          onSparkFlash={showSparkFlash}
+          sparkFlashId={sparkFlashId}
         />
       )}
     </div>
@@ -570,83 +594,70 @@ function usePostSparks(postIds: string[], supabase: ReturnType<typeof createSupa
   return { sparkCounts, userSparks, userId, toggleSpark };
 }
 
+function SparkFlash() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+      <div className="flex items-center gap-2 rounded-full bg-[#7c5ce8]/90 px-5 py-2.5 shadow-lg backdrop-blur-sm"
+        style={{ animation: "pulse 0.3s ease-out" }}
+      >
+        <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
+        </svg>
+        <span className="text-sm font-bold text-white">Sparked!</span>
+      </div>
+    </div>
+  );
+}
+
 function PostSparkButton({
   postId,
   count,
   sparked,
   onToggle,
+  onFlash,
   variant = "small",
 }: {
   postId: string;
   count: number;
   sparked: boolean;
   onToggle: (postId: string) => void;
+  onFlash: () => void;
   variant?: "small" | "large";
 }) {
-  const [flash, setFlash] = useState(false);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
-    if (!sparked) {
-      // Only flash on spark, not un-spark
-      setFlash(true);
-      if (flashTimer.current) clearTimeout(flashTimer.current);
-      flashTimer.current = setTimeout(() => setFlash(false), 800);
-    }
+    if (!sparked) onFlash();
     onToggle(postId);
   }
 
   if (variant === "large") {
-    // TikTok-style sidebar button
     return (
-      <div className="relative">
-        <button
-          type="button"
-          onClick={handleClick}
-          className="flex flex-col items-center gap-1"
-        >
-          <div className={`flex h-11 w-11 items-center justify-center rounded-full transition active:scale-[0.9] ${sparked ? "bg-[#7c5ce8]" : "bg-white/10"}`}>
-            <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
-            </svg>
-          </div>
-          <span className="text-[11px] font-semibold text-white">{count || ""}</span>
-        </button>
-        {/* Flash toast */}
-        {flash && (
-          <div className="pointer-events-none absolute -left-16 top-1/2 -translate-y-1/2 whitespace-nowrap rounded-full bg-[#7c5ce8] px-3 py-1.5 text-xs font-semibold text-white shadow-lg"
-            style={{ animation: "pulse 0.3s ease-out" }}
-          >
-            ⚡ Sparked
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Small — for grid cards
-  return (
-    <div className="relative inline-flex">
       <button
         type="button"
         onClick={handleClick}
-        className="flex items-center gap-1 text-xs transition active:scale-[0.9]"
+        className="flex flex-col items-center gap-1"
       >
-        <svg className={`h-3.5 w-3.5 ${sparked ? "text-[#7c5ce8]" : "text-zinc-500"}`} viewBox="0 0 24 24" fill="currentColor">
-          <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
-        </svg>
-        {count > 0 && <span className={sparked ? "font-semibold text-[#7c5ce8]" : "text-zinc-500"}>{count}</span>}
+        <div className={`flex h-11 w-11 items-center justify-center rounded-full transition active:scale-[0.9] ${sparked ? "bg-[#7c5ce8]" : "bg-white/10"}`}>
+          <svg className="h-5 w-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
+          </svg>
+        </div>
+        <span className="text-[11px] font-semibold text-white">{count || ""}</span>
       </button>
-      {/* Flash toast */}
-      {flash && (
-        <span className="pointer-events-none ml-1.5 whitespace-nowrap text-[10px] font-semibold text-[#7c5ce8]"
-          style={{ animation: "pulse 0.3s ease-out" }}
-        >
-          Sparked!
-        </span>
-      )}
-    </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleClick}
+      className="flex items-center gap-1 text-xs transition active:scale-[0.9]"
+    >
+      <svg className={`h-3.5 w-3.5 ${sparked ? "text-[#7c5ce8]" : "text-zinc-500"}`} viewBox="0 0 24 24" fill="currentColor">
+        <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
+      </svg>
+      {count > 0 && <span className={sparked ? "font-semibold text-[#7c5ce8]" : "text-zinc-500"}>{count}</span>}
+    </button>
   );
 }
 
