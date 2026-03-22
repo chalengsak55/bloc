@@ -84,7 +84,8 @@ export function OnboardingFlow() {
           JSON.stringify({ manualData: manual, vibe: selectedVibe }),
         );
       }
-      router.push("/seller/onboarding/step2");
+      // TODO: next step of onboarding flow
+      router.push("/seller/dashboard");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);

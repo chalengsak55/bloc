@@ -262,7 +262,7 @@ export function SellerDashboard() {
           <div className="text-xs font-medium tracking-wide text-zinc-400">
             Incoming requests (open)
           </div>
-          <Link href="/seller/onboard" className="text-xs text-zinc-400 underline decoration-white/20 underline-offset-4">
+          <Link href="/seller/onboarding" className="text-xs text-zinc-400 underline decoration-white/20 underline-offset-4">
             Edit profile
           </Link>
         </div>
