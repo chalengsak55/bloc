@@ -118,7 +118,7 @@ type SellerPost = {
   created_at: string;
 };
 
-// ─── Fullscreen viewer ───────────────────────────────────────────────────────
+// ─── Fullscreen viewer (TikTok scroll-snap) ─────────────────────────────────
 
 function FullscreenViewer({
   posts,
@@ -129,9 +129,8 @@ function FullscreenViewer({
   initialIndex: number;
   onClose: () => void;
 }) {
-  const [index, setIndex] = useState(initialIndex);
-  const touchStartY = useRef(0);
-  const post = posts[index];
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
 
   // Lock body scroll
   useEffect(() => {
@@ -141,82 +140,112 @@ function FullscreenViewer({
     };
   }, []);
 
-  // Navigate with swipe
-  const goNext = useCallback(() => {
-    setIndex((i) => (i + 1) % posts.length);
-  }, [posts.length]);
+  // Scroll to initial post on mount
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: initialIndex * window.innerHeight, behavior: "instant" });
+  }, [initialIndex]);
 
-  const goPrev = useCallback(() => {
-    setIndex((i) => (i - 1 + posts.length) % posts.length);
-  }, [posts.length]);
+  // Track current index via IntersectionObserver
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
 
-  // Touch handlers
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartY.current = e.touches[0].clientY;
-  }, []);
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            const idx = Number(entry.target.getAttribute("data-index"));
+            if (!isNaN(idx)) setCurrentIndex(idx);
 
-  const handleTouchEnd = useCallback(
-    (e: React.TouchEvent) => {
-      const dy = touchStartY.current - e.changedTouches[0].clientY;
-      if (Math.abs(dy) < 60) return; // ignore small swipes
-      if (dy > 0) goNext();   // swipe up → next
-      else goPrev();          // swipe down → prev
-    },
-    [goNext, goPrev],
-  );
+            // Auto-play visible video, pause others
+            const videos = el.querySelectorAll("video");
+            videos.forEach((v) => {
+              if (entry.target.contains(v)) {
+                v.play().catch(() => {});
+              } else {
+                v.pause();
+              }
+            });
+          }
+        }
+      },
+      { root: el, threshold: 0.6 },
+    );
+
+    const slides = el.querySelectorAll("[data-index]");
+    slides.forEach((s) => observer.observe(s));
+
+    return () => observer.disconnect();
+  }, [posts]);
 
   return (
-    <div
-      className="fixed inset-0"
-      style={{ zIndex: 9999, backgroundColor: "#000" }}
-      onClick={onClose}
-      onTouchStart={handleTouchStart}
-      onTouchEnd={handleTouchEnd}
-    >
+    <div className="fixed inset-0" style={{ zIndex: 9999, backgroundColor: "#000" }}>
       {/* Close button */}
       <button
         type="button"
         onClick={onClose}
-        className="absolute right-4 top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
+        className="absolute right-4 top-12 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
 
-      {/* Media — full screen */}
+      {/* Scroll container */}
       <div
-        className="flex h-full w-full items-center justify-center"
-        onClick={(e) => e.stopPropagation()}
+        ref={scrollRef}
+        className="h-full w-full overflow-y-scroll"
+        style={{
+          scrollSnapType: "y mandatory",
+          WebkitOverflowScrolling: "touch",
+        }}
       >
-        {post.media_type === "video" ? (
-          <video
-            key={post.id}
-            src={post.media_url}
-            autoPlay
-            playsInline
-            controls
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            key={post.id}
-            src={post.media_url}
-            alt={post.caption ?? "Post"}
-            className="h-full w-full object-contain"
-          />
-        )}
+        {posts.map((p, i) => (
+          <div
+            key={p.id}
+            data-index={i}
+            className="relative flex h-screen w-full flex-shrink-0 items-center justify-center"
+            style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+          >
+            {p.media_type === "video" ? (
+              <video
+                src={p.media_url}
+                autoPlay={i === initialIndex}
+                muted={i !== initialIndex}
+                playsInline
+                controls
+                loop
+                className="h-full w-full object-contain"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.media_url}
+                alt={p.caption ?? "Post"}
+                className="h-full w-full object-contain"
+              />
+            )}
+
+            {/* Caption overlay */}
+            {p.caption && !/^\s*</.test(p.caption) && (
+              <div className="absolute inset-x-0 bottom-16 z-10 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10">
+                <p className="text-sm leading-snug text-white">{p.caption.replace(/<[^>]*>/g, "")}</p>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
 
       {/* Dot indicators */}
       {posts.length > 1 && (
-        <div className="absolute bottom-8 left-0 right-0 z-10 flex items-center justify-center gap-1.5">
+        <div className="absolute bottom-6 left-0 right-0 z-20 flex items-center justify-center gap-1.5">
           {posts.map((_, i) => (
             <span
               key={i}
               className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-4 bg-white" : "w-1.5 bg-white/30"
+                i === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/30"
               }`}
             />
           ))}
