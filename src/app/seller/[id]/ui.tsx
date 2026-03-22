@@ -132,6 +132,7 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   const [posts, setPosts] = useState<SellerPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
   const [isOwner, setIsOwner] = useState(false);
+  const [viewingPost, setViewingPost] = useState<SellerPost | null>(null);
 
   useEffect(() => {
     let canceled = false;
@@ -215,8 +216,9 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
               {posts.map((p) => (
                 <div
                   key={p.id}
-                  className="relative aspect-square overflow-hidden rounded-2xl"
+                  className="relative aspect-square cursor-pointer overflow-hidden rounded-2xl"
                   style={{ backgroundColor: "#111" }}
+                  onClick={() => setViewingPost(p)}
                 >
                   {p.media_type === "video" ? (
                     <video
@@ -238,7 +240,7 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                   {isOwner && (
                     <button
                       type="button"
-                      onClick={() => deletePost(p.id)}
+                      onClick={(e) => { e.stopPropagation(); deletePost(p.id); }}
                       className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-sm transition hover:bg-black/80 hover:text-white"
                     >
                       <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -276,6 +278,48 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
           </div>
         )}
       </div>
+
+      {/* ── Fullscreen post viewer ── */}
+      {viewingPost && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
+          onClick={() => setViewingPost(null)}
+        >
+          {/* Close button */}
+          <button
+            type="button"
+            onClick={() => setViewingPost(null)}
+            className="absolute right-4 top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+
+          {/* Content */}
+          <div
+            className="max-h-[85vh] max-w-[90vw]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {viewingPost.media_type === "video" ? (
+              <video
+                src={viewingPost.media_url}
+                autoPlay
+                playsInline
+                controls
+                className="max-h-[85vh] max-w-[90vw] rounded-xl"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={viewingPost.media_url}
+                alt={viewingPost.caption ?? "Post"}
+                className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain"
+              />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
