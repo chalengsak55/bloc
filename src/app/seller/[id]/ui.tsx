@@ -118,8 +118,38 @@ const PLACEHOLDER_SERVICES = [
   { name: "Full Service Package", description: "Cut, beard, shave, and styling", price: "$55" },
 ] as const;
 
+type SellerPost = {
+  id: string;
+  media_url: string;
+  media_type: string;
+  caption: string | null;
+  created_at: string;
+};
+
 function StorefrontTabs({ seller }: { seller: SellerProfile }) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [tab, setTab] = useState<"posts" | "services">("posts");
+  const [posts, setPosts] = useState<SellerPost[]>([]);
+  const [postsLoading, setPostsLoading] = useState(true);
+
+  useEffect(() => {
+    let canceled = false;
+    async function loadPosts() {
+      setPostsLoading(true);
+      const { data } = await supabase
+        .from("seller_posts")
+        .select("id,media_url,media_type,caption,created_at")
+        .eq("seller_id", seller.id)
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (!canceled) {
+        setPosts((data ?? []) as SellerPost[]);
+        setPostsLoading(false);
+      }
+    }
+    loadPosts();
+    return () => { canceled = true; };
+  }, [supabase, seller.id]);
 
   return (
     <div className="px-3.5 pb-16 pt-4">
@@ -145,12 +175,57 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
       <div className="mt-4">
         {tab === "posts" ? (
           /* ── Posts grid ── */
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <svg className="mb-3 h-8 w-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-            </svg>
-            <p className="text-sm text-zinc-500">No posts yet</p>
-          </div>
+          postsLoading ? (
+            <div className="grid grid-cols-2 gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div
+                  key={i}
+                  className="aspect-square animate-pulse rounded-2xl"
+                  style={{ backgroundColor: "#111" }}
+                />
+              ))}
+            </div>
+          ) : posts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <svg className="mb-3 h-8 w-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+              </svg>
+              <p className="text-sm text-zinc-500">No posts yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {posts.map((p) => (
+                <div
+                  key={p.id}
+                  className="relative aspect-square overflow-hidden rounded-2xl"
+                  style={{ backgroundColor: "#111" }}
+                >
+                  {p.media_type === "video" ? (
+                    <video
+                      src={p.media_url}
+                      autoPlay
+                      muted
+                      loop
+                      playsInline
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={p.media_url}
+                      alt={p.caption ?? "Post"}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  {p.caption && (
+                    <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent px-2 pb-2 pt-6">
+                      <p className="line-clamp-2 text-[11px] leading-snug text-white">{p.caption}</p>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )
         ) : (
           /* ── Services list ── */
           <div className="flex flex-col gap-2">

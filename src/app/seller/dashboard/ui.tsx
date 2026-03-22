@@ -137,30 +137,35 @@ export function SellerDashboard() {
 
   const [busy, setBusy] = useState(false);
   const [postUploading, setPostUploading] = useState(false);
-  const [postToast, setPostToast] = useState<string | null>(null);
+  const [postToast, setPostToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const postFileRef = useRef<HTMLInputElement>(null);
 
   async function handleAddPost(file: File) {
     if (postUploading) return;
 
+    const showPostError = (msg: string) => {
+      setPostToast({ message: msg, type: "error" });
+      setTimeout(() => setPostToast(null), 4000);
+    };
+
     const validTypes = ["image/jpeg", "image/png", "video/mp4"];
     if (!validTypes.includes(file.type)) {
-      setStatus("Only JPG, PNG, or MP4 files are allowed.");
+      showPostError("Only JPG, PNG, or MP4 files are allowed.");
       return;
     }
     if (file.size > 50 * 1024 * 1024) {
-      setStatus("File too large. Max 50MB.");
+      showPostError("File too large. Max 50MB.");
       return;
     }
 
     setPostUploading(true);
-    setStatus(null);
+    setPostToast(null);
     try {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        setStatus("Sign in to add a post.");
+        showPostError("Sign in to add a post.");
         return;
       }
 
@@ -186,14 +191,18 @@ export function SellerDashboard() {
       });
       if (insertErr) throw insertErr;
 
-      setPostToast("Post added!");
+      setPostToast({ message: "Post added!", type: "success" });
       setTimeout(() => setPostToast(null), 3000);
     } catch (e) {
-      const msg =
+      const raw =
         e && typeof e === "object" && "message" in e
           ? String((e as { message: unknown }).message)
-          : "Failed to add post.";
-      setStatus(msg);
+          : "";
+      const msg = raw.includes("row-level security")
+        ? "Permission denied. Try signing out and back in."
+        : raw || "Failed to add post.";
+      setPostToast({ message: msg, type: "error" });
+      setTimeout(() => setPostToast(null), 4000);
     } finally {
       setPostUploading(false);
       if (postFileRef.current) postFileRef.current.value = "";
@@ -353,8 +362,14 @@ export function SellerDashboard() {
 
         {/* Post toast */}
         {postToast && (
-          <div className="mt-3 rounded-xl bg-emerald-500/10 px-3 py-2 text-xs font-medium text-emerald-400">
-            {postToast}
+          <div
+            className={`mt-3 rounded-xl px-3 py-2 text-xs font-medium ${
+              postToast.type === "success"
+                ? "bg-emerald-500/10 text-emerald-400"
+                : "bg-red-500/10 text-red-400"
+            }`}
+          >
+            {postToast.message}
           </div>
         )}
       </div>
