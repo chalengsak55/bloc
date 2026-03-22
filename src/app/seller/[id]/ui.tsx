@@ -134,7 +134,7 @@ function FullscreenViewer({
   sparkCounts: Record<string, number>;
   userSparks: Set<string>;
   toggleSpark: (postId: string) => void;
-  onSparkFlash: () => void;
+  onSparkFlash: (postId: string) => void;
   sparkFlashId: string | null;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -264,7 +264,7 @@ function FullscreenViewer({
               )}
 
               {/* Spark flash centered */}
-              {sparkFlashId && <SparkFlash />}
+              {sparkFlashId === p.id && <SparkFlash />}
               {/* Spark — TikTok sidebar */}
               <div className="absolute bottom-24 right-3 z-10">
                 <PostSparkButton
@@ -346,9 +346,8 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   const [sparkFlashId, setSparkFlashId] = useState<string | null>(null);
   const sparkFlashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showSparkFlash = useCallback(() => {
-    const id = Math.random().toString(36);
-    setSparkFlashId(id);
+  const showSparkFlash = useCallback((postId: string) => {
+    setSparkFlashId(postId);
     if (sparkFlashTimer.current) clearTimeout(sparkFlashTimer.current);
     sparkFlashTimer.current = setTimeout(() => setSparkFlashId(null), 800);
   }, []);
@@ -480,12 +479,7 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                         count={sparkCounts[p.id] ?? 0}
                         sparked={userSparks.has(p.id)}
                         onToggle={toggleSpark}
-                        onFlash={() => {
-                          const id = p.id;
-                          setSparkFlashId(id);
-                          if (sparkFlashTimer.current) clearTimeout(sparkFlashTimer.current);
-                          sparkFlashTimer.current = setTimeout(() => setSparkFlashId(null), 800);
-                        }}
+                        onFlash={showSparkFlash}
                       />
                     </div>
                   )}
@@ -621,12 +615,12 @@ function PostSparkButton({
   count: number;
   sparked: boolean;
   onToggle: (postId: string) => void;
-  onFlash: () => void;
+  onFlash: (postId: string) => void;
   variant?: "small" | "large";
 }) {
   function handleClick(e: React.MouseEvent) {
     e.stopPropagation();
-    if (!sparked) onFlash();
+    if (!sparked) onFlash(postId);
     onToggle(postId);
   }
 
