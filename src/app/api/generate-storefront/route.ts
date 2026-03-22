@@ -91,7 +91,8 @@ Each template should feel distinct. Vary the tone, color palette, and approach w
       ],
     });
 
-    const text = message.content[0].type === "text" ? message.content[0].text : "";
+    const raw = message.content[0].type === "text" ? message.content[0].text : "";
+    const text = raw.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
     const parsed = JSON.parse(text);
 
     return NextResponse.json({ ok: true, templates: parsed.templates });
