@@ -49,7 +49,7 @@ Location: ${manualData!.location}`;
     const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
     const message = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+      model: "claude-sonnet-4-20250514",
       max_tokens: 2048,
       messages: [
         {
@@ -70,11 +70,19 @@ Return ONLY valid JSON (no markdown, no code fences) with this exact structure:
       "tagline": "A catchy one-liner for the storefront",
       "bio": "2-3 sentence bio for the seller profile",
       "services": ["Service 1", "Service 2", "Service 3"],
-      "colorScheme": { "primary": "#hexcolor", "secondary": "#hexcolor" },
+      "colorScheme": { "primary": "#hexcolor", "secondary": "#hexcolor", "theme": "warm | cool | dark | vibrant | neutral | earthy | neon" },
       "style": "Brief description of the visual style"
     }
   ]
 }
+
+For the colorScheme.theme field, auto-assign based on business type:
+- Hair / nail / tattoo / party / DJ → "neon" or "vibrant"
+- Home repair / cleaning → "neutral" or "earthy"
+- Food / restaurant → "warm"
+- Tech / freelancer → "dark"
+- Medical / legal / finance → "neutral"
+Pick the most fitting theme for each template. The "theme" value must be exactly one of: warm, cool, dark, vibrant, neutral, earthy, neon.
 
 Each template should feel distinct. Vary the tone, color palette, and approach while staying true to the vibe. Use colors that work well on dark backgrounds (#0d0d12).`,
         },
