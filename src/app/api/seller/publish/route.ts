@@ -103,7 +103,7 @@ export async function POST(req: Request) {
 
   const { error: upsertErr } = await service
     .from("profiles")
-    .upsert(profileUpdate);
+    .upsert(profileUpdate, { onConflict: "id" });
 
   if (upsertErr) {
     console.error("Profile upsert error:", upsertErr);
