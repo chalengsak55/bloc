@@ -180,12 +180,23 @@ function FullscreenViewer({
     return () => observer.disconnect();
   }, [posts]);
 
+  // Tap to toggle play/pause
+  const handleVideoTap = useCallback((e: React.MouseEvent<HTMLVideoElement>) => {
+    const v = e.currentTarget;
+    if (v.paused) v.play().catch(() => {});
+    else v.pause();
+  }, []);
+
   return (
-    <div className="fixed inset-0" style={{ zIndex: 9999, backgroundColor: "#000" }}>
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ zIndex: 9999, backgroundColor: "#000" }}
+      onClick={onClose}
+    >
       {/* Close button */}
       <button
         type="button"
-        onClick={onClose}
+        onClick={(e) => { e.stopPropagation(); onClose(); }}
         className="absolute right-4 top-12 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
       >
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -193,64 +204,72 @@ function FullscreenViewer({
         </svg>
       </button>
 
-      {/* Scroll container */}
+      {/* Content area — TikTok-sized on desktop */}
       <div
-        ref={scrollRef}
-        className="h-full w-full overflow-y-scroll"
-        style={{
-          scrollSnapType: "y mandatory",
-          WebkitOverflowScrolling: "touch",
-        }}
+        className="relative h-full w-full max-w-[420px]"
+        onClick={(e) => e.stopPropagation()}
       >
-        {posts.map((p, i) => (
-          <div
-            key={p.id}
-            data-index={i}
-            className="relative flex h-screen w-full flex-shrink-0 items-center justify-center"
-            style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
-          >
-            {p.media_type === "video" ? (
-              <video
-                src={p.media_url}
-                autoPlay={i === initialIndex}
-                muted={i !== initialIndex}
-                playsInline
-                controls
-                loop
-                className="h-full w-full object-contain"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={p.media_url}
-                alt={p.caption ?? "Post"}
-                className="h-full w-full object-contain"
-              />
-            )}
+        {/* Scroll container */}
+        <div
+          ref={scrollRef}
+          className="h-full w-full overflow-y-scroll"
+          style={{
+            scrollSnapType: "y mandatory",
+            WebkitOverflowScrolling: "touch",
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          {posts.map((p, i) => (
+            <div
+              key={p.id}
+              data-index={i}
+              className="relative flex h-screen w-full flex-shrink-0 items-center justify-center bg-black"
+              style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+            >
+              {p.media_type === "video" ? (
+                <video
+                  src={p.media_url}
+                  autoPlay={i === initialIndex}
+                  muted={i !== initialIndex}
+                  playsInline
+                  loop
+                  onClick={handleVideoTap}
+                  className="h-full w-full cursor-pointer object-contain"
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={p.media_url}
+                  alt={p.caption ?? "Post"}
+                  className="h-full w-full object-contain"
+                />
+              )}
 
-            {/* Caption overlay */}
-            {p.caption && !/^\s*</.test(p.caption) && (
-              <div className="absolute inset-x-0 bottom-16 z-10 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10">
-                <p className="text-sm leading-snug text-white">{p.caption.replace(/<[^>]*>/g, "")}</p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-
-      {/* Dot indicators */}
-      {posts.length > 1 && (
-        <div className="absolute bottom-6 left-0 right-0 z-20 flex items-center justify-center gap-1.5">
-          {posts.map((_, i) => (
-            <span
-              key={i}
-              className={`h-1.5 rounded-full transition-all ${
-                i === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/30"
-              }`}
-            />
+              {/* Caption overlay */}
+              {p.caption && !/^\s*</.test(p.caption) && (
+                <div className="absolute inset-x-0 bottom-16 z-10 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10">
+                  <p className="text-sm leading-snug text-white">{p.caption.replace(/<[^>]*>/g, "")}</p>
+                </div>
+              )}
+            </div>
           ))}
         </div>
-      )}
+
+        {/* Dot indicators */}
+        {posts.length > 1 && (
+          <div className="absolute bottom-6 left-0 right-0 z-20 flex items-center justify-center gap-1.5">
+            {posts.map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/30"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
