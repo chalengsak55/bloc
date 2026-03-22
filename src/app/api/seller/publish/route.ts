@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 
     if (uploadErr) {
       console.error("Cover upload error:", uploadErr);
-      return NextResponse.json({ error: "Failed to upload cover" }, { status: 500 });
+      return NextResponse.json({ error: `Failed to upload cover: ${uploadErr.message}` }, { status: 500 });
     }
 
     const { data: urlData } = service.storage
@@ -107,7 +107,7 @@ export async function POST(req: Request) {
 
   if (upsertErr) {
     console.error("Profile upsert error:", upsertErr);
-    return NextResponse.json({ error: "Failed to save profile" }, { status: 500 });
+    return NextResponse.json({ error: `Failed to save profile: ${upsertErr.message}` }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, sellerId: user.id });
