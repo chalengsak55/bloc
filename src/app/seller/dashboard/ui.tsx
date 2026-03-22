@@ -139,10 +139,10 @@ export function SellerDashboard() {
   const [postUploading, setPostUploading] = useState(false);
   const [postToast, setPostToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const postFileRef = useRef<HTMLInputElement>(null);
+  const [postDraft, setPostDraft] = useState<{ file: File; preview: string } | null>(null);
+  const [postCaption, setPostCaption] = useState("");
 
-  async function handleAddPost(file: File) {
-    if (postUploading) return;
-
+  function handleFilePick(file: File) {
     const showPostError = (msg: string) => {
       setPostToast({ message: msg, type: "error" });
       setTimeout(() => setPostToast(null), 4000);
@@ -158,6 +158,21 @@ export function SellerDashboard() {
       return;
     }
 
+    if (postDraft?.preview) URL.revokeObjectURL(postDraft.preview);
+    setPostDraft({ file, preview: URL.createObjectURL(file) });
+    setPostCaption("");
+  }
+
+  function cancelDraft() {
+    if (postDraft?.preview) URL.revokeObjectURL(postDraft.preview);
+    setPostDraft(null);
+    setPostCaption("");
+    if (postFileRef.current) postFileRef.current.value = "";
+  }
+
+  async function publishPost() {
+    if (!postDraft || postUploading) return;
+
     setPostUploading(true);
     setPostToast(null);
     try {
@@ -165,10 +180,12 @@ export function SellerDashboard() {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) {
-        showPostError("Sign in to add a post.");
+        setPostToast({ message: "Sign in to add a post.", type: "error" });
+        setTimeout(() => setPostToast(null), 4000);
         return;
       }
 
+      const file = postDraft.file;
       const ext = file.name.split(".").pop() ?? (file.type.startsWith("image/") ? "jpg" : "mp4");
       const path = `${user.id}/posts/${Date.now()}.${ext}`;
 
@@ -187,10 +204,11 @@ export function SellerDashboard() {
         seller_id: user.id,
         media_url: urlData.publicUrl,
         media_type: mediaType,
-        caption: null,
+        caption: postCaption.trim() || null,
       });
       if (insertErr) throw insertErr;
 
+      cancelDraft();
       setPostToast({ message: "Post added!", type: "success" });
       setTimeout(() => setPostToast(null), 3000);
     } catch (e) {
@@ -205,7 +223,6 @@ export function SellerDashboard() {
       setTimeout(() => setPostToast(null), 4000);
     } finally {
       setPostUploading(false);
-      if (postFileRef.current) postFileRef.current.value = "";
     }
   }
 
@@ -330,7 +347,7 @@ export function SellerDashboard() {
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
-              if (f) handleAddPost(f);
+              if (f) handleFilePick(f);
             }}
           />
           <button
@@ -367,6 +384,65 @@ export function SellerDashboard() {
             Sign out
           </button>
         </div>
+
+        {/* Post draft preview */}
+        {postDraft && (
+          <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+            <div className="text-xs font-medium tracking-wide text-zinc-400 mb-3">New post</div>
+            <div className="overflow-hidden rounded-xl" style={{ backgroundColor: "#111" }}>
+              {postDraft.file.type.startsWith("video/") ? (
+                <video
+                  src={postDraft.preview}
+                  className="max-h-48 w-full object-cover"
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={postDraft.preview}
+                  alt="Preview"
+                  className="max-h-48 w-full object-cover"
+                />
+              )}
+            </div>
+            <textarea
+              value={postCaption}
+              onChange={(e) => setPostCaption(e.target.value)}
+              placeholder="Write a caption..."
+              rows={2}
+              className="mt-3 w-full resize-none rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-500 outline-none transition focus:border-white/20"
+            />
+            <div className="mt-3 flex gap-2">
+              <button
+                type="button"
+                onClick={publishPost}
+                disabled={postUploading}
+                className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white transition active:scale-[0.97] disabled:opacity-50"
+                style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}
+              >
+                {postUploading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                    Posting…
+                  </span>
+                ) : (
+                  "Post"
+                )}
+              </button>
+              <button
+                type="button"
+                onClick={cancelDraft}
+                disabled={postUploading}
+                className="rounded-full border border-white/10 px-4 py-2.5 text-sm text-zinc-400 transition hover:bg-white/[0.05]"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Post toast */}
         {postToast && (
