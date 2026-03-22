@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Instrument_Serif, DM_Sans, Geist_Mono } from "next/font/google";
+import { Providers } from "@/components/Providers";
 import "./globals.css";
 
 const instrumentSerif = Instrument_Serif({
@@ -35,7 +36,7 @@ export default function RootLayout({
         className={`${instrumentSerif.variable} ${dmSans.variable} ${geistMono.variable} min-h-dvh bg-[#0d0d12] text-zinc-100 antialiased selection:bg-violet-500/25 selection:text-zinc-50`}
         style={{ fontFamily: "var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif" }}
       >
-        {children}
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
