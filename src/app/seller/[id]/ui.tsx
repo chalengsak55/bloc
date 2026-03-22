@@ -110,14 +110,6 @@ function MessageButton({ seller }: { seller: SellerProfile }) {
   );
 }
 
-// ─── Tabs: Posts & Services ───────────────────────────────────────────────────
-
-const PLACEHOLDER_SERVICES = [
-  { name: "Classic Haircut", description: "Precision cut with hot towel finish", price: "$35" },
-  { name: "Beard Trim & Shape", description: "Line-up, trim, and oil treatment", price: "$20" },
-  { name: "Full Service Package", description: "Cut, beard, shave, and styling", price: "$55" },
-] as const;
-
 type SellerPost = {
   id: string;
   media_url: string;
@@ -125,6 +117,65 @@ type SellerPost = {
   caption: string | null;
   created_at: string;
 };
+
+// ─── Fullscreen viewer ───────────────────────────────────────────────────────
+
+function FullscreenViewer({ post, onClose }: { post: SellerPost; onClose: () => void }) {
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center"
+      style={{ zIndex: 9999, backgroundColor: "#000" }}
+      onClick={onClose}
+    >
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={onClose}
+        className="fixed right-4 top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
+      >
+        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      {/* Content */}
+      {post.media_type === "video" ? (
+        <video
+          src={post.media_url}
+          autoPlay
+          playsInline
+          controls
+          onClick={(e) => e.stopPropagation()}
+          className="h-full w-full object-cover"
+          style={{ aspectRatio: "9 / 16", maxHeight: "100vh" }}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={post.media_url}
+          alt={post.caption ?? "Post"}
+          onClick={(e) => e.stopPropagation()}
+          className="max-h-screen max-w-full object-contain"
+        />
+      )}
+    </div>
+  );
+}
+
+// ─── Tabs: Posts & Services ───────────────────────────────────────────────────
+
+const PLACEHOLDER_SERVICES = [
+  { name: "Classic Haircut", description: "Precision cut with hot towel finish", price: "$35" },
+  { name: "Beard Trim & Shape", description: "Line-up, trim, and oil treatment", price: "$20" },
+  { name: "Full Service Package", description: "Cut, beard, shave, and styling", price: "$55" },
+] as const;
 
 function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -281,44 +332,10 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
 
       {/* ── Fullscreen post viewer ── */}
       {viewingPost && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
-          onClick={() => setViewingPost(null)}
-        >
-          {/* Close button */}
-          <button
-            type="button"
-            onClick={() => setViewingPost(null)}
-            className="absolute right-4 top-12 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-white/10 text-white backdrop-blur-sm transition hover:bg-white/20"
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {/* Content */}
-          <div
-            className="max-h-[85vh] max-w-[90vw]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {viewingPost.media_type === "video" ? (
-              <video
-                src={viewingPost.media_url}
-                autoPlay
-                playsInline
-                controls
-                className="max-h-[85vh] max-w-[90vw] rounded-xl"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={viewingPost.media_url}
-                alt={viewingPost.caption ?? "Post"}
-                className="max-h-[85vh] max-w-[90vw] rounded-xl object-contain"
-              />
-            )}
-          </div>
-        </div>
+        <FullscreenViewer
+          post={viewingPost}
+          onClose={() => setViewingPost(null)}
+        />
       )}
     </div>
   );
