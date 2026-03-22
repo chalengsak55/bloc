@@ -398,12 +398,14 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-2">
-              {posts.map((p) => (
+              {posts.map((p, i) => {
+                const isLastOdd = posts.length % 2 === 1 && i === posts.length - 1;
+                return (
                 <div
                   key={p.id}
-                  className="relative aspect-square cursor-pointer overflow-hidden rounded-2xl"
+                  className={`relative cursor-pointer overflow-hidden rounded-2xl ${isLastOdd ? "col-span-2 aspect-video" : "aspect-square"}`}
                   style={{ backgroundColor: "#111" }}
-                  onClick={() => setViewingIndex(posts.indexOf(p))}
+                  onClick={() => setViewingIndex(i)}
                 >
                   {p.media_type === "video" ? (
                     <video
@@ -439,7 +441,8 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                     </div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           )
         ) : (
@@ -472,6 +475,96 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
           onClose={() => setViewingIndex(null)}
         />
       )}
+    </div>
+  );
+}
+
+// ─── Spark button ────────────────────────────────────────────────────────────
+
+function SparkButton({ seller }: { seller: SellerProfile }) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const router = useRouter();
+  const [sparked, setSparked] = useState(false);
+  const [count, setCount] = useState(0);
+  const [isOwner, setIsOwner] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let canceled = false;
+    async function load() {
+      // Get spark count
+      const { count: total } = await supabase
+        .from("sparks")
+        .select("*", { count: "exact", head: true })
+        .eq("seller_id", seller.id);
+      if (!canceled) setCount(total ?? 0);
+
+      // Check if current user sparked + is owner
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!canceled && user) {
+        setIsOwner(user.id === seller.id);
+        const { data } = await supabase
+          .from("sparks")
+          .select("id")
+          .eq("seller_id", seller.id)
+          .eq("user_id", user.id)
+          .maybeSingle();
+        if (!canceled) setSparked(!!data);
+      }
+      if (!canceled) setLoading(false);
+    }
+    load();
+    return () => { canceled = true; };
+  }, [supabase, seller.id]);
+
+  async function handleSpark() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push(`/auth?redirect=/seller/${seller.id}`);
+      return;
+    }
+
+    if (sparked) {
+      // Un-spark
+      await supabase
+        .from("sparks")
+        .delete()
+        .eq("seller_id", seller.id)
+        .eq("user_id", user.id);
+      setSparked(false);
+      setCount((c) => Math.max(0, c - 1));
+    } else {
+      // Spark
+      await supabase.from("sparks").insert({
+        seller_id: seller.id,
+        user_id: user.id,
+      });
+      setSparked(true);
+      setCount((c) => c + 1);
+    }
+  }
+
+  if (loading || isOwner) return null;
+
+  return (
+    <div className="flex items-center gap-2">
+      {count > 0 && (
+        <span className="text-xs text-zinc-500">{count} sparked</span>
+      )}
+      <button
+        type="button"
+        onClick={handleSpark}
+        className={`flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition active:scale-[0.95] ${
+          sparked
+            ? "bg-[#7c5ce8] text-white"
+            : "border border-[#7c5ce8] text-[#7c5ce8]"
+        }`}
+      >
+        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
+        </svg>
+        {sparked ? "Sparked" : "Spark"}
+      </button>
     </div>
   );
 }
@@ -567,6 +660,11 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
               </span>
             )}
           </p>
+
+          {/* Spark */}
+          <div className="mt-3">
+            <SparkButton seller={seller} />
+          </div>
 
           {/* Action buttons */}
           <div className="mt-5 flex gap-3">
