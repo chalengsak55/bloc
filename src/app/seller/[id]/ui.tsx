@@ -147,15 +147,20 @@ function FullscreenViewer({ post, onClose }: { post: SellerPost; onClose: () => 
 
       {/* Content */}
       {post.media_type === "video" ? (
-        <video
-          src={post.media_url}
-          autoPlay
-          playsInline
-          controls
+        <div
+          className="relative mx-auto flex h-full items-center"
+          style={{ maxWidth: "calc(100vh * 9 / 16)" }}
           onClick={(e) => e.stopPropagation()}
-          className="h-full w-full object-cover"
-          style={{ aspectRatio: "9 / 16", maxHeight: "100vh" }}
-        />
+        >
+          <video
+            src={post.media_url}
+            autoPlay
+            playsInline
+            controls
+            className="h-full w-full rounded-none object-contain"
+            style={{ maxHeight: "100vh" }}
+          />
+        </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
