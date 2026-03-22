@@ -119,7 +119,7 @@ export default function Home() {
             <div className="mt-auto pt-6">
               <div className="text-base font-semibold text-zinc-100">Nearby</div>
               <div className="mt-1 text-[13px] leading-snug text-zinc-400">
-                See who&apos;s live near you now
+                Find what you need, nearby
               </div>
             </div>
 
