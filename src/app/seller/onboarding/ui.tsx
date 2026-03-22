@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/Input";
 
 /* ── URL type detection ── */
@@ -48,6 +49,7 @@ type InputMode = "url" | "manual";
 /* ── Component ── */
 
 export function OnboardingFlow() {
+  const router = useRouter();
   const [mode, setMode] = useState<InputMode>("url");
   const [url, setUrl] = useState("");
   const [manual, setManual] = useState({ name: "", category: "", location: "", description: "" });
@@ -72,20 +74,22 @@ export function OnboardingFlow() {
         const res = await fetch(`/api/scrape?url=${encodeURIComponent(url)}`);
         const data = await res.json();
         if (!data.ok) throw new Error(data.error ?? "Scrape failed");
-        // TODO: pass scraped data + vibe to Step 2/3
-        console.log("Scraped:", data, "Vibe:", selectedVibe);
-        alert(`Scrape OK! Next step coming soon.\n\nTitle: ${data.title ?? "—"}\nVibe: ${selectedVibe}`);
+        sessionStorage.setItem(
+          "onboarding",
+          JSON.stringify({ scrapedData: data, vibe: selectedVibe }),
+        );
       } else {
-        // TODO: pass manual data + vibe to Step 2/3
-        console.log("Manual:", manual, "Vibe:", selectedVibe);
-        alert(`Manual info saved! Next step coming soon.\n\nName: ${manual.name}\nVibe: ${selectedVibe}`);
+        sessionStorage.setItem(
+          "onboarding",
+          JSON.stringify({ manualData: manual, vibe: selectedVibe }),
+        );
       }
+      router.push("/seller/onboarding/step2");
     } catch (err) {
       alert(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setLoading(false);
     }
-  }, [canSubmit, mode, url, manual, selectedVibe]);
+  }, [canSubmit, mode, url, manual, selectedVibe, router]);
 
   return (
     <div className="flex flex-col gap-10 animate-[fade-in_0.3s_ease-out]">
