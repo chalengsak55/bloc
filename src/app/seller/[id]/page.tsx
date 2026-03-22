@@ -34,7 +34,7 @@ export default async function SellerPage({
     .from("profiles")
     .select("id, display_name, category, location_text, bio, avatar_url, link_url, is_online, lat, lng")
     .eq("id", id)
-    .eq("role", "seller")
+    .eq("is_seller", true)
     .maybeSingle();
 
   if (!seller) notFound();
