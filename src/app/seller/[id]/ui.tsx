@@ -127,6 +127,8 @@ function FullscreenViewer({
   sparkCounts,
   userSparks,
   toggleSpark,
+  onSparkFlash,
+  sparkFlashId,
 }: {
   posts: SellerPost[];
   initialIndex: number;
