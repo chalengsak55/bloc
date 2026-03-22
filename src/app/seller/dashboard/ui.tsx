@@ -326,7 +326,7 @@ export function SellerDashboard() {
           <input
             ref={postFileRef}
             type="file"
-            accept="image/jpeg,image/png,video/mp4"
+            accept="image/*,video/*"
             className="hidden"
             onChange={(e) => {
               const f = e.target.files?.[0];
