@@ -113,7 +113,7 @@ export function OnboardingFlow() {
             <button
               type="button"
               onClick={() => setMode("manual")}
-              className="mt-3 text-xs text-zinc-500 transition hover:text-zinc-300"
+              className="mt-3 text-xs font-semibold text-zinc-300 transition hover:text-white"
             >
               No website or social media? Fill in manually &rarr;
             </button>
