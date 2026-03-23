@@ -32,7 +32,7 @@ export default async function SellerPage({
   const supabase = createSupabaseServiceClient();
   const { data: seller } = await supabase
     .from("profiles")
-    .select("id, display_name, category, location_text, bio, avatar_url, link_url, is_online, lat, lng")
+    .select("id, display_name, category, location_text, bio, avatar_url, cover_url, link_url, is_online, lat, lng")
     .eq("id", id)
     .eq("is_seller", true)
     .maybeSingle();

@@ -14,6 +14,7 @@ type SellerProfile = {
   location_text: string | null;
   bio: string | null;
   avatar_url: string | null;
+  cover_url: string | null;
   link_url: string | null;
   is_online: boolean;
   lat: number | null;
@@ -424,13 +425,21 @@ const PLACEHOLDER_SERVICES = [
   { name: "Full Service Package", description: "Cut, beard, shave, and styling", price: "$55" },
 ] as const;
 
-function StorefrontTabs({ seller }: { seller: SellerProfile }) {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+function StorefrontTabs({ seller, isOwner, supabase }: { seller: SellerProfile; isOwner: boolean; supabase: ReturnType<typeof createSupabaseBrowserClient> }) {
   const [tab, setTab] = useState<"posts" | "services">("posts");
   const [posts, setPosts] = useState<SellerPost[]>([]);
   const [postsLoading, setPostsLoading] = useState(true);
-  const [isOwner, setIsOwner] = useState(false);
   const [viewingIndex, setViewingIndex] = useState<number | null>(null);
+
+  // Add post state
+  const addPostRef = useRef<HTMLInputElement>(null);
+  const [postDraft, setPostDraft] = useState<{ file: File; preview: string } | null>(null);
+  const [postCaption, setPostCaption] = useState("");
+  const [postUploading, setPostUploading] = useState(false);
+
+  // Edit caption state
+  const [editingCaptionId, setEditingCaptionId] = useState<string | null>(null);
+  const [editCaptionText, setEditCaptionText] = useState("");
 
   const postIds = useMemo(() => posts.map((p) => p.id), [posts]);
   const { sparkCounts, userSparks, toggleSpark } = usePostSparks(postIds, supabase);
@@ -446,13 +455,6 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   useEffect(() => {
     let canceled = false;
     async function load() {
-      // Check ownership
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!canceled && user) {
-        setIsOwner(user.id === seller.id);
-      }
-
-      // Load posts
       setPostsLoading(true);
       const { data } = await supabase
         .from("seller_posts")
@@ -470,13 +472,57 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
   }, [supabase, seller.id]);
 
   async function deletePost(postId: string) {
-    const { error } = await supabase
-      .from("seller_posts")
-      .delete()
-      .eq("id", postId);
-    if (!error) {
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
-    }
+    const { error } = await supabase.from("seller_posts").delete().eq("id", postId);
+    if (!error) setPosts((prev) => prev.filter((p) => p.id !== postId));
+  }
+
+  // ── Add post ──
+  function handleAddFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validTypes = ["image/jpeg", "image/png", "video/mp4"];
+    if (!validTypes.includes(file.type) || file.size > 50 * 1024 * 1024) return;
+    if (postDraft?.preview) URL.revokeObjectURL(postDraft.preview);
+    setPostDraft({ file, preview: URL.createObjectURL(file) });
+    setPostCaption("");
+  }
+
+  function cancelDraft() {
+    if (postDraft?.preview) URL.revokeObjectURL(postDraft.preview);
+    setPostDraft(null);
+    setPostCaption("");
+    if (addPostRef.current) addPostRef.current.value = "";
+  }
+
+  async function publishPost() {
+    if (!postDraft || postUploading) return;
+    setPostUploading(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const file = postDraft.file;
+      const ext = file.name.split(".").pop() ?? (file.type.startsWith("image/") ? "jpg" : "mp4");
+      const path = `${user.id}/posts/${Date.now()}.${ext}`;
+      const { data: uploaded, error: uploadErr } = await supabase.storage
+        .from("storefront-media").upload(path, file, { cacheControl: "3600", upsert: false });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("storefront-media").getPublicUrl(uploaded.path);
+      const mediaType = file.type.startsWith("video/") ? "video" : "image";
+      const { data: inserted, error: insertErr } = await supabase.from("seller_posts").insert({
+        seller_id: user.id, media_url: urlData.publicUrl, media_type: mediaType, caption: postCaption.trim() || null,
+      }).select("id,media_url,media_type,caption,created_at").single();
+      if (insertErr) throw insertErr;
+      if (inserted) setPosts((prev) => [inserted as SellerPost, ...prev]);
+      cancelDraft();
+    } catch { /* silent */ } finally { setPostUploading(false); }
+  }
+
+  // ── Edit caption ──
+  async function saveCaption(postId: string) {
+    const newCaption = editCaptionText.trim() || null;
+    await supabase.from("seller_posts").update({ caption: newCaption }).eq("id", postId);
+    setPosts((prev) => prev.map((p) => p.id === postId ? { ...p, caption: newCaption } : p));
+    setEditingCaptionId(null);
   }
 
   return (
@@ -502,82 +548,150 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
       {/* Tab content */}
       <div className="mt-4">
         {tab === "posts" ? (
-          /* ── Posts grid ── */
-          postsLoading ? (
-            <div className="grid grid-cols-2 gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div
-                  key={i}
-                  className="aspect-square animate-pulse rounded-2xl"
-                  style={{ backgroundColor: "#111" }}
-                />
-              ))}
-            </div>
-          ) : posts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <svg className="mb-3 h-8 w-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
-              </svg>
-              <p className="text-sm text-zinc-500">No posts yet</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {posts.map((p, i) => {
-                const isLastOdd = posts.length % 2 === 1 && i === posts.length - 1;
-                return (
-                <div key={p.id} className={isLastOdd ? "col-span-2" : ""}>
-                  <div
-                    className={`relative cursor-pointer overflow-hidden rounded-2xl ${isLastOdd ? "aspect-video" : "aspect-square"}`}
-                    style={{ backgroundColor: "#111" }}
-                    onClick={() => setViewingIndex(i)}
-                  >
-                    {p.media_type === "video" ? (
-                      <video
-                        src={p.media_url}
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <RetryImage
-                        src={p.media_url}
-                        alt={p.caption ?? "Post"}
-                        className="h-full w-full object-cover"
-                      />
-                    )}
-                    {/* Spark flash centered on card */}
-                    {sparkFlashId === p.id && <SparkFlash />}
-                    {isOwner && (
-                      <button
-                        type="button"
-                        onClick={(e) => { e.stopPropagation(); deletePost(p.id); }}
-                        className="absolute right-1.5 top-1.5 z-10 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-sm transition hover:bg-black/80 hover:text-white"
-                      >
-                        <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                      </button>
-                    )}
-                  </div>
-                  {/* Spark under card */}
-                  {!isOwner && (
-                    <div className="mt-1 px-1">
-                      <PostSparkButton
-                        postId={p.id}
-                        count={sparkCounts[p.id] ?? 0}
-                        sparked={userSparks.has(p.id)}
-                        onToggle={toggleSpark}
-                        onFlash={showSparkFlash}
-                      />
-                    </div>
+          <>
+            {/* Owner: Add post draft preview */}
+            {isOwner && postDraft && (
+              <div className="mb-4 overflow-hidden rounded-2xl" style={{ backgroundColor: "#111", border: "1px solid #1e1e1e" }}>
+                <div className="relative aspect-video">
+                  {postDraft.file.type.startsWith("video/") ? (
+                    <video src={postDraft.preview} className="h-full w-full object-cover" autoPlay muted loop playsInline />
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={postDraft.preview} alt="Draft" className="h-full w-full object-cover" />
                   )}
                 </div>
-                );
-              })}
-            </div>
-          )
+                <div className="p-3">
+                  <textarea
+                    value={postCaption}
+                    onChange={(e) => setPostCaption(e.target.value)}
+                    placeholder="Add a caption..."
+                    rows={2}
+                    className="w-full resize-none rounded-xl bg-white/[0.06] px-3 py-2 text-sm text-white outline-none placeholder:text-zinc-600 focus:ring-1 focus:ring-[#7c5ce8]"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button type="button" onClick={cancelDraft} className="flex-1 rounded-full border border-white/10 py-2 text-xs font-semibold text-zinc-400">Cancel</button>
+                    <button type="button" onClick={publishPost} disabled={postUploading} className="flex-1 rounded-full py-2 text-xs font-semibold text-white disabled:opacity-50" style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}>
+                      {postUploading ? "Uploading..." : "Post"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Posts grid */}
+            {postsLoading ? (
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="aspect-square animate-pulse rounded-2xl" style={{ backgroundColor: "#111" }} />
+                ))}
+              </div>
+            ) : posts.length === 0 && !isOwner ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <svg className="mb-3 h-8 w-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.41a2.25 2.25 0 013.182 0l2.909 2.91M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z" />
+                </svg>
+                <p className="text-sm text-zinc-500">No posts yet</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {/* Owner: Add post card */}
+                {isOwner && (
+                  <div>
+                    <button
+                      type="button"
+                      onClick={() => addPostRef.current?.click()}
+                      className="flex aspect-square w-full flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 transition hover:border-[#7c5ce8]/50 hover:bg-white/[0.02]"
+                    >
+                      <svg className="mb-1 h-8 w-8 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                      </svg>
+                      <span className="text-xs text-zinc-500">Add post</span>
+                    </button>
+                    <input ref={addPostRef} type="file" accept="image/jpeg,image/png,video/mp4" className="hidden" onChange={handleAddFile} />
+                  </div>
+                )}
+                {posts.map((p, i) => {
+                  const isLastOdd = isOwner
+                    ? posts.length % 2 === 0 && i === posts.length - 1
+                    : posts.length % 2 === 1 && i === posts.length - 1;
+                  return (
+                  <div key={p.id} className={isLastOdd ? "col-span-2" : ""}>
+                    <div
+                      className={`relative cursor-pointer overflow-hidden rounded-2xl ${isLastOdd ? "aspect-video" : "aspect-square"}`}
+                      style={{ backgroundColor: "#111" }}
+                      onClick={() => setViewingIndex(i)}
+                    >
+                      {p.media_type === "video" ? (
+                        <video src={p.media_url} autoPlay muted loop playsInline className="h-full w-full object-cover" />
+                      ) : (
+                        <RetryImage src={p.media_url} alt={p.caption ?? "Post"} className="h-full w-full object-cover" />
+                      )}
+                      {sparkFlashId === p.id && <SparkFlash />}
+                      {isOwner && (
+                        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1">
+                          {/* Edit caption */}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setEditingCaptionId(p.id); setEditCaptionText(p.caption ?? ""); }}
+                            className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-sm transition hover:bg-black/80 hover:text-white"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                          </button>
+                          {/* Delete */}
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); deletePost(p.id); }}
+                            className="flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white/70 backdrop-blur-sm transition hover:bg-black/80 hover:text-white"
+                          >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {/* Spark under card — buyer only */}
+                    {!isOwner && (
+                      <div className="mt-1 px-1">
+                        <PostSparkButton
+                          postId={p.id}
+                          count={sparkCounts[p.id] ?? 0}
+                          sparked={userSparks.has(p.id)}
+                          onToggle={toggleSpark}
+                          onFlash={showSparkFlash}
+                        />
+                      </div>
+                    )}
+                  </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Edit caption modal */}
+            {editingCaptionId && (
+              <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={() => setEditingCaptionId(null)}>
+                <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+                <div className="relative w-full max-w-[420px] rounded-t-3xl bg-[#111] px-5 pb-8 pt-6 sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
+                  <div className="mb-4 flex justify-center sm:hidden"><div className="h-1 w-10 rounded-full bg-zinc-600" /></div>
+                  <h2 className="mb-3 text-lg font-bold text-white">Edit caption</h2>
+                  <textarea
+                    value={editCaptionText}
+                    onChange={(e) => setEditCaptionText(e.target.value)}
+                    rows={4}
+                    className="w-full resize-none rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-[#7c5ce8]"
+                    placeholder="Add a caption..."
+                  />
+                  <div className="mt-4 flex gap-3">
+                    <button type="button" onClick={() => setEditingCaptionId(null)} className="flex-1 rounded-full border border-white/10 py-2.5 text-sm font-semibold text-zinc-400">Cancel</button>
+                    <button type="button" onClick={() => saveCaption(editingCaptionId)} className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white" style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}>Save</button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           /* ── Services list ── */
           <div className="flex flex-col gap-2">
@@ -747,8 +861,136 @@ function PostSparkButton({
 
 // ─── Storefront ───────────────────────────────────────────────────────────────
 
-export function SellerStorefront({ seller }: { seller: SellerProfile }) {
+// ─── Owner hooks ──────────────────────────────────────────────────────────────
+
+function useOwnerCheck(sellerId: string) {
+  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setIsOwner(user.id === sellerId);
+    });
+  }, [supabase, sellerId]);
+
+  return { isOwner, supabase };
+}
+
+// ─── Edit Info Modal ─────────────────────────────────────────────────────────
+
+function EditInfoModal({
+  seller,
+  onClose,
+  onSaved,
+  supabase,
+}: {
+  seller: SellerProfile;
+  onClose: () => void;
+  onSaved: (updated: Partial<SellerProfile>) => void;
+  supabase: ReturnType<typeof createSupabaseBrowserClient>;
+}) {
+  const [name, setName] = useState(seller.display_name ?? "");
+  const [category, setCategory] = useState(seller.category ?? "");
+  const [location, setLocation] = useState(seller.location_text ?? "");
+  const [bio, setBio] = useState(seller.bio ?? "");
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    setSaving(true);
+    const update = {
+      display_name: name.trim() || null,
+      category: category.trim() || null,
+      location_text: location.trim() || null,
+      bio: bio.trim() || null,
+    };
+    await supabase.from("profiles").update(update).eq("id", seller.id);
+    onSaved(update);
+    setSaving(false);
+    onClose();
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-[420px] rounded-t-3xl bg-[#111] px-5 pb-8 pt-6 sm:rounded-3xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex justify-center sm:hidden">
+          <div className="h-1 w-10 rounded-full bg-zinc-600" />
+        </div>
+        <h2 className="mb-4 text-lg font-bold text-white">Edit store info</h2>
+        <div className="flex flex-col gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-[#7c5ce8]" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Category</label>
+            <input value={category} onChange={(e) => setCategory(e.target.value)} className="w-full rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-[#7c5ce8]" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Location</label>
+            <input value={location} onChange={(e) => setLocation(e.target.value)} className="w-full rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-[#7c5ce8]" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-zinc-500">Bio</label>
+            <textarea value={bio} onChange={(e) => setBio(e.target.value)} rows={3} className="w-full resize-none rounded-xl bg-white/[0.06] px-4 py-2.5 text-sm text-white outline-none focus:ring-1 focus:ring-[#7c5ce8]" />
+          </div>
+        </div>
+        <div className="mt-5 flex gap-3">
+          <button type="button" onClick={onClose} className="flex-1 rounded-full border border-white/10 py-2.5 text-sm font-semibold text-zinc-400">Cancel</button>
+          <button type="button" onClick={save} disabled={saving} className="flex-1 rounded-full py-2.5 text-sm font-semibold text-white" style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}>
+            {saving ? "Saving..." : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Storefront ───────────────────────────────────────────────────────────────
+
+export function SellerStorefront({ seller: initialSeller }: { seller: SellerProfile }) {
+  const [seller, setSeller] = useState(initialSeller);
   const hue = getHue(seller.id);
+  const { isOwner, supabase } = useOwnerCheck(seller.id);
+  const [isOnline, setIsOnline] = useState(seller.is_online);
+  const [showEditInfo, setShowEditInfo] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+  const [coverSrc, setCoverSrc] = useState(seller.cover_url || seller.avatar_url);
+
+  // ── Cover upload handler ──
+  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const validTypes = ["image/jpeg", "image/png", "video/mp4"];
+    if (!validTypes.includes(file.type) || file.size > 50 * 1024 * 1024) return;
+
+    // Show preview immediately
+    const preview = URL.createObjectURL(file);
+    setCoverSrc(preview);
+
+    const ext = file.type === "video/mp4" ? "mp4" : file.type === "image/png" ? "png" : "jpg";
+    const path = `${seller.id}/cover.${ext}`;
+    const { data: uploaded, error } = await supabase.storage
+      .from("storefront-media")
+      .upload(path, file, { cacheControl: "3600", upsert: true });
+    if (error) { setCoverSrc(seller.cover_url || seller.avatar_url); return; }
+
+    const { data: urlData } = supabase.storage.from("storefront-media").getPublicUrl(uploaded.path);
+    const newUrl = urlData.publicUrl;
+    await supabase.from("profiles").update({ cover_url: newUrl }).eq("id", seller.id);
+    setCoverSrc(newUrl);
+    URL.revokeObjectURL(preview);
+  }
+
+  // ── Online toggle ──
+  async function toggleOnline() {
+    const next = !isOnline;
+    setIsOnline(next);
+    await supabase.from("profiles").update({ is_online: next }).eq("id", seller.id);
+  }
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-[480px] flex-col bg-[#0d0d12]">
@@ -756,25 +998,21 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
       <div
         className="relative flex min-h-[56vh] flex-col justify-end"
         style={{
-          background: seller.avatar_url
+          background: coverSrc
             ? undefined
             : `linear-gradient(135deg, hsl(${hue},55%,35%), hsl(${(hue + 60) % 360},55%,25%))`,
         }}
       >
-        {/* Avatar background image */}
-        {seller.avatar_url && (
+        {/* Cover / Avatar background image */}
+        {coverSrc && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={seller.avatar_url}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover"
-          />
+          <img src={coverSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
         )}
 
         {/* Dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-[#0d0d12]/60 to-transparent" />
 
-        {/* Top bar — Back + More */}
+        {/* Top bar — Back + Edit cover (owner) */}
         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-12">
           <Link
             href="/nearby"
@@ -784,48 +1022,86 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </Link>
-          <button
-            type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition hover:bg-black/60"
-          >
-            <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
-              <circle cx="5" cy="12" r="2" />
-              <circle cx="12" cy="12" r="2" />
-              <circle cx="19" cy="12" r="2" />
-            </svg>
-          </button>
+          <div className="flex gap-2">
+            {isOwner && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => coverInputRef.current?.click()}
+                  className="flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-2 text-xs font-medium text-white backdrop-blur-sm transition hover:bg-black/60"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  Edit cover
+                </button>
+                <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,video/mp4" className="hidden" onChange={handleCoverUpload} />
+              </>
+            )}
+            <button
+              type="button"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 backdrop-blur-sm transition hover:bg-black/60"
+            >
+              <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <circle cx="5" cy="12" r="2" />
+                <circle cx="12" cy="12" r="2" />
+                <circle cx="19" cy="12" r="2" />
+              </svg>
+            </button>
+          </div>
         </div>
 
         {/* Hero content */}
         <div className="relative z-10 px-5 pb-6">
-          {/* Open now pill */}
-          {seller.is_online && (
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-400 backdrop-blur-sm"
+          {/* Open now pill — toggleable for owner */}
+          {isOnline ? (
+            <button
+              type="button"
+              onClick={isOwner ? toggleOnline : undefined}
+              className={`mb-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-400 backdrop-blur-sm ${isOwner ? "cursor-pointer" : ""}`}
               style={{ border: "1px solid rgba(52,211,153,0.25)" }}
+              disabled={!isOwner}
             >
               <span className="relative flex h-2 w-2">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
               </span>
               Open now
-            </span>
-          )}
-          {!seller.is_online && (
-            <span className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-zinc-700/30 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 backdrop-blur-sm"
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={isOwner ? toggleOnline : undefined}
+              className={`mb-3 inline-flex items-center gap-1.5 rounded-full bg-zinc-700/30 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 backdrop-blur-sm ${isOwner ? "cursor-pointer" : ""}`}
               style={{ border: "1px solid rgba(113,113,122,0.25)" }}
+              disabled={!isOwner}
             >
               <span className="inline-flex h-2 w-2 rounded-full bg-zinc-600" />
               Offline
-            </span>
+            </button>
           )}
 
-          {/* Business name */}
-          <h1
-            className="text-[32px] font-bold leading-tight text-white"
-            style={{ fontFamily: "var(--font-instrument-serif), Georgia, serif" }}
-          >
-            {seller.display_name ?? "Seller"}
-          </h1>
+          {/* Business name + edit button */}
+          <div className="flex items-start gap-2">
+            <h1
+              className="flex-1 text-[32px] font-bold leading-tight text-white"
+              style={{ fontFamily: "var(--font-instrument-serif), Georgia, serif" }}
+            >
+              {seller.display_name ?? "Seller"}
+            </h1>
+            {isOwner && (
+              <button
+                type="button"
+                onClick={() => setShowEditInfo(true)}
+                className="mt-2 flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-white/70 transition hover:bg-white/20 hover:text-white"
+              >
+                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </button>
+            )}
+          </div>
 
           {/* Category + Location */}
           <p className="mt-1 text-sm text-zinc-400" style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}>
@@ -860,7 +1136,6 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
             border: "1px solid rgba(124,92,232,0.25)",
           }}
         >
-          {/* Lightning bolt icon */}
           <svg className="h-5 w-5 flex-shrink-0" viewBox="0 0 24 24" fill="none">
             <defs>
               <linearGradient id="bolt-grad" x1="0" y1="0" x2="1" y2="1">
@@ -902,7 +1177,17 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
       </div>
 
       {/* ── Tabs ── */}
-      <StorefrontTabs seller={seller} />
+      <StorefrontTabs seller={seller} isOwner={isOwner} supabase={supabase} />
+
+      {/* ── Edit info modal ── */}
+      {showEditInfo && (
+        <EditInfoModal
+          seller={seller}
+          onClose={() => setShowEditInfo(false)}
+          onSaved={(updated) => setSeller((prev) => ({ ...prev, ...updated }))}
+          supabase={supabase}
+        />
+      )}
     </main>
   );
 }
