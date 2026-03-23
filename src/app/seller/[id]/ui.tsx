@@ -73,7 +73,7 @@ function DistanceBadge({ lat, lng }: { lat: number; lng: number }) {
 
 // ─── Message button ───────────────────────────────────────────────────────────
 
-function MessageButton({ seller }: { seller: SellerProfile }) {
+function MessageButton({ seller, variant = "secondary" }: { seller: SellerProfile; variant?: "primary" | "secondary" }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -93,19 +93,25 @@ function MessageButton({ seller }: { seller: SellerProfile }) {
     router.push(`/message/${seller.id}?draft=${draft}`);
   }
 
+  const isPrimary = variant === "primary";
+
   return (
     <button
       onClick={handleMessage}
       disabled={busy}
-      className="flex-1 rounded-full border border-white/20 bg-white/[0.06] py-3 text-sm font-semibold text-white backdrop-blur-sm transition hover:bg-white/[0.1] active:scale-[0.97] disabled:opacity-50"
-      style={{ fontFamily: "var(--font-dm-sans), sans-serif" }}
+      className={`w-full rounded-full py-3 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-50 ${
+        isPrimary
+          ? "text-white shadow-lg"
+          : "border border-white/20 bg-white/[0.06] text-white backdrop-blur-sm hover:bg-white/[0.1]"
+      }`}
+      style={isPrimary ? { background: "#7c5ce8", fontFamily: "var(--font-dm-sans), sans-serif" } : { fontFamily: "var(--font-dm-sans), sans-serif" }}
     >
       {busy ? (
         <span className="flex items-center justify-center gap-2">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         </span>
       ) : (
-        "Message"
+        isPrimary ? "Chat with agent" : "Message"
       )}
     </button>
   );
@@ -861,6 +867,33 @@ function PostSparkButton({
 
 // ─── Storefront ───────────────────────────────────────────────────────────────
 
+// ─── CTA by category ─────────────────────────────────────────────────────────
+
+const ctaLabelByCategory: Record<string, string> = {
+  food: "Place an order",
+  restaurant: "Place an order",
+  retail: "Place an order",
+  beauty: "Book appointment",
+  wellness: "Book appointment",
+  fitness: "Book appointment",
+  hair: "Book appointment",
+  massage: "Book appointment",
+  barber: "Book appointment",
+  home: "Get a quote",
+  home_services: "Get a quote",
+  cleaning: "Get a quote",
+  repair: "Get a quote",
+  freelance: "Get a quote",
+  creative: "Get a quote",
+  moving: "Get a quote",
+  tech: "Get a quote",
+};
+
+function getSecondaryCta(category: string | null): string {
+  if (!category) return "Get a quote";
+  return ctaLabelByCategory[category.toLowerCase().trim()] ?? "Get a quote";
+}
+
 // ─── Owner hooks ──────────────────────────────────────────────────────────────
 
 function useOwnerCheck(sellerId: string) {
@@ -959,30 +992,45 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
   const [showEditInfo, setShowEditInfo] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const [coverSrc, setCoverSrc] = useState(seller.cover_url || seller.avatar_url);
+  const [coverDraft, setCoverDraft] = useState<{ file: File; preview: string } | null>(null);
+  const [coverSaving, setCoverSaving] = useState(false);
 
-  // ── Cover upload handler ──
-  async function handleCoverUpload(e: React.ChangeEvent<HTMLInputElement>) {
+  // ── Cover: pick file → show preview (don't save yet) ──
+  function handleCoverPick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     const validTypes = ["image/jpeg", "image/png", "video/mp4"];
     if (!validTypes.includes(file.type) || file.size > 50 * 1024 * 1024) return;
+    if (coverDraft?.preview) URL.revokeObjectURL(coverDraft.preview);
+    setCoverDraft({ file, preview: URL.createObjectURL(file) });
+  }
 
-    // Show preview immediately
-    const preview = URL.createObjectURL(file);
-    setCoverSrc(preview);
+  function cancelCoverDraft() {
+    if (coverDraft?.preview) URL.revokeObjectURL(coverDraft.preview);
+    setCoverDraft(null);
+    if (coverInputRef.current) coverInputRef.current.value = "";
+  }
 
+  // ── Cover: save to storage + DB ──
+  async function saveCover() {
+    if (!coverDraft || coverSaving) return;
+    setCoverSaving(true);
+    const file = coverDraft.file;
     const ext = file.type === "video/mp4" ? "mp4" : file.type === "image/png" ? "png" : "jpg";
     const path = `${seller.id}/cover.${ext}`;
     const { data: uploaded, error } = await supabase.storage
       .from("storefront-media")
-      .upload(path, file, { cacheControl: "3600", upsert: true });
-    if (error) { setCoverSrc(seller.cover_url || seller.avatar_url); return; }
+      .upload(path, file, { cacheControl: "0", upsert: true });
+    if (error) { setCoverSaving(false); return; }
 
     const { data: urlData } = supabase.storage.from("storefront-media").getPublicUrl(uploaded.path);
-    const newUrl = urlData.publicUrl;
+    const newUrl = `${urlData.publicUrl}?t=${Date.now()}`;
     await supabase.from("profiles").update({ cover_url: newUrl }).eq("id", seller.id);
     setCoverSrc(newUrl);
-    URL.revokeObjectURL(preview);
+    URL.revokeObjectURL(coverDraft.preview);
+    setCoverDraft(null);
+    setCoverSaving(false);
+    if (coverInputRef.current) coverInputRef.current.value = "";
   }
 
   // ── Online toggle ──
@@ -1003,14 +1051,34 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
             : `linear-gradient(135deg, hsl(${hue},55%,35%), hsl(${(hue + 60) % 360},55%,25%))`,
         }}
       >
-        {/* Cover / Avatar background image */}
-        {coverSrc && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={coverSrc} alt="" className="absolute inset-0 h-full w-full object-cover" />
-        )}
+        {/* Cover / Avatar background (image or video, or draft preview) */}
+        {(coverDraft?.preview || coverSrc) && (() => {
+          const src = coverDraft?.preview || coverSrc!;
+          const isVideo = coverDraft
+            ? coverDraft.file.type.startsWith("video/")
+            : /\.mp4/i.test(src);
+          return isVideo ? (
+            <video src={src} autoPlay muted loop playsInline className="absolute inset-0 h-full w-full object-cover" />
+          ) : (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={src} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          );
+        })()}
 
         {/* Dark gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-[#0d0d12]/60 to-transparent" />
+
+        {/* Cover draft: Save / Cancel bar */}
+        {coverDraft && (
+          <div className="absolute inset-x-0 bottom-0 z-20 flex items-center justify-center gap-3 bg-black/60 px-5 py-3 backdrop-blur-sm">
+            <button type="button" onClick={cancelCoverDraft} className="rounded-full border border-white/20 px-5 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+              Cancel
+            </button>
+            <button type="button" onClick={saveCover} disabled={coverSaving} className="rounded-full px-5 py-2 text-sm font-semibold text-white disabled:opacity-50" style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}>
+              {coverSaving ? "Saving..." : "Save cover"}
+            </button>
+          </div>
+        )}
 
         {/* Top bar — Back + Edit cover (owner) */}
         <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-12">
@@ -1036,7 +1104,7 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
                   </svg>
                   Edit cover
                 </button>
-                <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,video/mp4" className="hidden" onChange={handleCoverUpload} />
+                <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,video/mp4" className="hidden" onChange={handleCoverPick} />
               </>
             )}
             <button
@@ -1113,17 +1181,19 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
             )}
           </p>
 
-          {/* Action buttons */}
-          <div className="mt-5 flex gap-3">
-            <button
-              type="button"
-              className="flex-1 rounded-full py-3 text-sm font-semibold text-white shadow-lg transition active:scale-[0.97]"
-              style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}
-            >
-              Book Now
-            </button>
-            <MessageButton seller={seller} />
-          </div>
+          {/* Action buttons — hidden for owner */}
+          {!isOwner && (
+            <div className="mt-5 flex flex-col gap-2.5">
+              <MessageButton seller={seller} variant="primary" />
+              <button
+                type="button"
+                className="w-full rounded-full border py-3 text-sm font-semibold transition active:scale-[0.97]"
+                style={{ borderColor: "#7c5ce8", color: "#7c5ce8" }}
+              >
+                {getSecondaryCta(seller.category)}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

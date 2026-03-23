@@ -13,11 +13,32 @@ const categories = ["Hair", "Food", "Home", "Moving", "Tech", "Barber", "Other"]
 const ctaTypes = [
   { id: "book", label: "Book an appointment", emoji: "📅" },
   { id: "order", label: "Place an order", emoji: "🛒" },
-  { id: "quote", label: "Request a quote", emoji: "💬" },
-  { id: "contact", label: "Contact me", emoji: "📩" },
+  { id: "quote", label: "Get a quote", emoji: "💬" },
 ] as const;
 
 type CtaId = (typeof ctaTypes)[number]["id"];
+
+/* ── Auto-assign CTA from category ── */
+
+const ctaByCategory: Record<string, CtaId> = {
+  food: "order",
+  restaurant: "order",
+  retail: "order",
+  beauty: "book",
+  wellness: "book",
+  fitness: "book",
+  hair: "book",
+  massage: "book",
+  barber: "book",
+  home: "quote",
+  home_services: "quote",
+  cleaning: "quote",
+  repair: "quote",
+  freelance: "quote",
+  creative: "quote",
+  moving: "quote",
+  tech: "quote",
+};
 
 /* ── Component ── */
 
@@ -40,18 +61,24 @@ export function ReviewForm() {
 
     try {
       const data = JSON.parse(raw);
+      let cat = "";
 
       if (data.manualData) {
         setName(data.manualData.name ?? "");
-        setCategory((data.manualData.category ?? "").toLowerCase().trim());
+        cat = (data.manualData.category ?? "").toLowerCase().trim();
+        setCategory(cat);
         setLocation(data.manualData.location ?? "");
         setDescription(data.manualData.description ?? "");
       } else if (data.scrapedData) {
         setName(data.scrapedData.title ?? "");
-        setCategory((data.scrapedData.category ?? "").toLowerCase().trim());
+        cat = (data.scrapedData.category ?? "").toLowerCase().trim();
+        setCategory(cat);
         setLocation(data.scrapedData.location ?? "");
         setDescription(data.scrapedData.description ?? "");
       }
+
+      // Auto-assign CTA from category
+      setCtaType(ctaByCategory[cat] ?? "quote");
 
       setReady(true);
     } catch {
@@ -59,11 +86,15 @@ export function ReviewForm() {
     }
   }, [router]);
 
+  // Update CTA when category changes
+  useEffect(() => {
+    if (category) setCtaType(ctaByCategory[category] ?? "quote");
+  }, [category]);
+
   const canSubmit =
     name.trim().length >= 2 &&
     !!category &&
-    location.trim().length >= 2 &&
-    !!ctaType;
+    location.trim().length >= 2;
 
   const handleContinue = useCallback(() => {
     if (!canSubmit) return;
@@ -129,9 +160,10 @@ export function ReviewForm() {
 
       {/* ── CTA type picker ── */}
       <section>
-        <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
+        <label className="mb-1 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
           What should customers do?
         </label>
+        <p className="mb-3 text-xs text-zinc-600">Auto-selected from your category. You can change it.</p>
         <div className="flex flex-col gap-2">
           {ctaTypes.map((cta) => {
             const active = ctaType === cta.id;
