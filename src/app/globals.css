@@ -47,4 +47,9 @@ body {
   100% { transform: scale(2.2); opacity: 0; }
 }
 
+@keyframes slideUpCaption {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }

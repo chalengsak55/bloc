@@ -118,6 +118,39 @@ type SellerPost = {
   created_at: string;
 };
 
+// ─── Lazy image with retry on error ──────────────────────────────────────────
+
+function RetryImage({ src, alt, className }: { src: string; alt: string; className?: string }) {
+  const [retries, setRetries] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const maxRetries = 3;
+
+  const handleError = useCallback(() => {
+    if (retries < maxRetries) {
+      setTimeout(() => setRetries((r) => r + 1), 1000 * (retries + 1));
+    }
+  }, [retries]);
+
+  const imgSrc = retries > 0 ? `${src}${src.includes("?") ? "&" : "?"}retry=${retries}` : src;
+
+  return (
+    <>
+      {!loaded && (
+        <div className="absolute inset-0 animate-pulse bg-zinc-800" />
+      )}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={imgSrc}
+        alt={alt}
+        loading="lazy"
+        onLoad={() => setLoaded(true)}
+        onError={handleError}
+        className={className}
+      />
+    </>
+  );
+}
+
 // ─── Fullscreen viewer (TikTok scroll-snap) ─────────────────────────────────
 
 function FullscreenViewer({
@@ -143,6 +176,7 @@ function FullscreenViewer({
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [playIcon, setPlayIcon] = useState<"play" | "pause" | null>(null);
   const iconTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [expandedCaption, setExpandedCaption] = useState<string | null>(null);
 
   // Lock body scroll
   useEffect(() => {
@@ -212,22 +246,22 @@ function FullscreenViewer({
       style={{ zIndex: 9999, backgroundColor: "#000" }}
       onClick={onClose}
     >
-      {/* Close button */}
-      <button
-        type="button"
-        onClick={(e) => { e.stopPropagation(); onClose(); }}
-        className="absolute right-4 top-12 z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm transition hover:bg-black/60"
-      >
-        <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-
       {/* Content area — TikTok-sized on desktop */}
       <div
         className="relative h-full w-full max-w-[420px]"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button — inside content, safe-area aware */}
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onClose(); }}
+          className="absolute right-4 z-40 flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm transition hover:bg-black/60"
+          style={{ top: "max(env(safe-area-inset-top, 12px), 12px)" }}
+        >
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
         {/* Scroll container */}
         <div
           ref={scrollRef}
@@ -257,8 +291,7 @@ function FullscreenViewer({
                   className="h-full w-full cursor-pointer object-contain"
                 />
               ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <RetryImage
                   src={p.media_url}
                   alt={p.caption ?? "Post"}
                   className="h-full w-full object-contain"
@@ -279,12 +312,68 @@ function FullscreenViewer({
                 />
               </div>
 
-              {/* Caption overlay */}
-              {p.caption && !/^\s*</.test(p.caption) && (
-                <div className="absolute inset-x-0 bottom-16 z-10 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10">
-                  <p className="text-sm leading-snug text-white">{p.caption.replace(/<[^>]*>/g, "")}</p>
-                </div>
-              )}
+              {/* Caption overlay — RedNote style */}
+              {p.caption && !/^\s*</.test(p.caption) && (() => {
+                const text = p.caption!.replace(/<[^>]*>/g, "");
+                const isExpanded = expandedCaption === p.id;
+                return (
+                  <>
+                    {/* Collapsed: 2-line preview at bottom */}
+                    {!isExpanded && (
+                      <div
+                        className="absolute inset-x-0 bottom-16 z-10 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <p className="line-clamp-2 text-sm leading-snug text-white">{text}</p>
+                        {text.length > 80 && (
+                          <button
+                            type="button"
+                            onClick={() => setExpandedCaption(p.id)}
+                            className="mt-1 text-xs font-semibold text-zinc-400 transition hover:text-white"
+                          >
+                            more
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Expanded: bottom sheet with full text */}
+                    {isExpanded && (
+                      <div
+                        className="absolute inset-0 z-30 flex flex-col"
+                        onClick={(e) => { e.stopPropagation(); setExpandedCaption(null); }}
+                      >
+                        {/* Image shrinks to top 40% */}
+                        <div className="h-[40%] flex-shrink-0" />
+                        {/* Text panel */}
+                        <div
+                          className="flex-1 overflow-y-auto rounded-t-3xl bg-[#0d0d12] px-5 pb-10 pt-6"
+                          style={{
+                            animation: "slideUpCaption 0.3s ease-out",
+                            boxShadow: "0 -8px 30px rgba(0,0,0,0.5)",
+                          }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {/* Drag handle */}
+                          <div className="mb-4 flex justify-center">
+                            <div className="h-1 w-10 rounded-full bg-zinc-600" />
+                          </div>
+                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">
+                            {text}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setExpandedCaption(null)}
+                            className="mt-6 text-xs font-semibold text-zinc-500 transition hover:text-white"
+                          >
+                            show less
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                );
+              })()}
             </div>
           ))}
         </div>
@@ -452,8 +541,7 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                         className="h-full w-full object-cover"
                       />
                     ) : (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <RetryImage
                         src={p.media_url}
                         alt={p.caption ?? "Post"}
                         className="h-full w-full object-cover"
@@ -471,15 +559,6 @@ function StorefrontTabs({ seller }: { seller: SellerProfile }) {
                           <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
-                    )}
-                    {/* Spark count badge — visible to everyone */}
-                    {(sparkCounts[p.id] ?? 0) > 0 && (
-                      <div className="absolute bottom-1.5 left-1.5 z-10 flex items-center gap-1 rounded-full bg-black/60 px-2 py-0.5 backdrop-blur-sm">
-                        <svg className="h-3 w-3 text-[#7c5ce8]" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
-                        </svg>
-                        <span className="text-[10px] font-semibold text-white">{sparkCounts[p.id]}</span>
-                      </div>
                     )}
                   </div>
                   {/* Spark under card */}
