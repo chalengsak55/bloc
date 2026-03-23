@@ -1181,21 +1181,22 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
             )}
           </p>
 
-          {/* Action buttons — hidden for owner */}
-          {!isOwner && (
-            <div className="mt-5 flex flex-col gap-2.5">
-              <MessageButton seller={seller} variant="primary" />
-              <button
-                type="button"
-                className="w-full rounded-full border py-3 text-sm font-semibold transition active:scale-[0.97]"
-                style={{ borderColor: "#7c5ce8", color: "#7c5ce8" }}
-              >
-                {getSecondaryCta(seller.category)}
-              </button>
-            </div>
-          )}
         </div>
       </div>
+
+      {/* ── Action buttons — hidden for owner ── */}
+      {!isOwner && (
+        <div className="flex flex-col gap-2.5 px-5 pt-4">
+          <MessageButton seller={seller} variant="primary" />
+          <button
+            type="button"
+            className="w-full rounded-full border py-3 text-sm font-semibold transition active:scale-[0.97]"
+            style={{ borderColor: "#7c5ce8", color: "#7c5ce8" }}
+          >
+            {getSecondaryCta(seller.category)}
+          </button>
+        </div>
+      )}
 
       {/* ── Agent bar ── */}
       <div className="px-3 pt-3">

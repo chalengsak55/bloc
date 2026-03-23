@@ -60,21 +60,30 @@ function inferCategoryAndLocation(html: string, urlHost: string) {
 
   const haystack = `${title} ${description} ${text} ${host}`.toLowerCase();
 
+  // Map detected keywords → UI categories (hair, food, home, moving, tech, barber, other)
+  const keywordToCategory: Record<string, string> = {
+    barber: "barber",
+    barbershop: "barber",
+    haircut: "barber",
+    salon: "hair",
+    nail: "hair",
+    nails: "hair",
+    spa: "hair",
+    massage: "hair",
+    restaurant: "food",
+    cafe: "food",
+    coffee: "food",
+    cleaning: "home",
+    plumber: "home",
+    electrician: "home",
+    photography: "tech",
+    photographer: "tech",
+  };
+
   let category: string | null = null;
   for (const kw of CATEGORY_KEYWORDS) {
     if (haystack.includes(kw)) {
-      // Normalize some common variants.
-      if (kw === "barbershop" || kw === "haircut") {
-        category = "barber";
-      } else if (kw === "nails") {
-        category = "nail";
-      } else if (kw === "cafe" || kw === "coffee") {
-        category = "restaurant";
-      } else if (kw === "photographer") {
-        category = "photography";
-      } else {
-        category = kw;
-      }
+      category = keywordToCategory[kw] ?? "other";
       break;
     }
   }

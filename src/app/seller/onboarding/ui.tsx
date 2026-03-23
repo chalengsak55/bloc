@@ -8,6 +8,15 @@ import { Input } from "@/components/ui/Input";
 
 type Platform = "instagram" | "tiktok" | "facebook" | "website";
 
+function isGoogleMapsLink(url: string): boolean {
+  try {
+    const host = new URL(url).hostname.replace("www.", "");
+    return host.includes("google.com/maps") || host.includes("maps.google") || host.includes("goo.gl") || host === "share.google" || host.includes("maps.app.goo.gl");
+  } catch {
+    return /share\.google|maps\.google|goo\.gl\/maps|maps\.app/i.test(url);
+  }
+}
+
 function detectPlatform(url: string): Platform | null {
   try {
     const host = new URL(url).hostname.replace("www.", "");
@@ -43,6 +52,7 @@ export function OnboardingFlow() {
   const [url, setUrl] = useState("");
   const [manual, setManual] = useState({ name: "", category: "", location: "", description: "" });
   const [loading, setLoading] = useState(false);
+  const [mapsHint, setMapsHint] = useState(false);
 
   const platform = url.startsWith("http") ? detectPlatform(url) : null;
 
@@ -56,6 +66,14 @@ export function OnboardingFlow() {
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
+
+    // Google Maps links can't be scraped — switch to manual form
+    if (mode === "url" && isGoogleMapsLink(url)) {
+      setMapsHint(true);
+      setMode("manual");
+      return;
+    }
+
     setLoading(true);
     try {
       if (mode === "url") {
@@ -112,6 +130,11 @@ export function OnboardingFlow() {
           </>
         ) : (
           <>
+            {mapsHint && (
+              <div className="mb-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-xs text-amber-300">
+                Google Maps links can&apos;t be auto-filled. Please enter your info below.
+              </div>
+            )}
             <label className="mb-3 block text-xs font-semibold uppercase tracking-widest text-zinc-500">
               Tell us about your business
             </label>
