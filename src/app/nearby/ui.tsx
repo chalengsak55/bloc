@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -152,6 +152,59 @@ export function NearbyGrid() {
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Location filter
+  const [locationQuery, setLocationQuery] = useState("");
+  const [locationLabel, setLocationLabel] = useState<string | null>(null);
+  const [customPos, setCustomPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationResults, setLocationResults] = useState<{ display_name: string; lat: string; lon: string }[]>([]);
+  const [locationSearching, setLocationSearching] = useState(false);
+  const [locationOpen, setLocationOpen] = useState(false);
+  const locationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Geocode search with Nominatim (debounced)
+  const searchLocation = useCallback(async (q: string) => {
+    if (!q.trim()) { setLocationResults([]); return; }
+    setLocationSearching(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&limit=5&q=${encodeURIComponent(q)}`,
+        { headers: { "Accept-Language": "en" } },
+      );
+      const data = await res.json();
+      setLocationResults(data);
+    } catch {
+      setLocationResults([]);
+    } finally {
+      setLocationSearching(false);
+    }
+  }, []);
+
+  function handleLocationInput(val: string) {
+    setLocationQuery(val);
+    if (locationTimer.current) clearTimeout(locationTimer.current);
+    locationTimer.current = setTimeout(() => searchLocation(val), 400);
+  }
+
+  function selectLocation(result: { display_name: string; lat: string; lon: string }) {
+    const shortName = result.display_name.split(",").slice(0, 2).join(",").trim();
+    setLocationLabel(shortName);
+    setCustomPos({ lat: parseFloat(result.lat), lng: parseFloat(result.lon) });
+    setLocationOpen(false);
+    setLocationQuery("");
+    setLocationResults([]);
+  }
+
+  function clearLocation() {
+    setLocationLabel(null);
+    setCustomPos(null);
+    setLocationQuery("");
+    setLocationResults([]);
+    setLocationOpen(false);
+  }
+
+  // Effective position: custom location > GPS
+  const effectivePos = customPos ?? userPos;
+
   function handleMessage(seller: Seller) {
     router.push(`/seller/${seller.id}`);
   }
@@ -275,25 +328,25 @@ export function NearbyGrid() {
     return result;
   }, [sellers, activeFilter, searchQuery]);
 
-  // Sort by distance if we have user position
+  // Sort by distance if we have a position (GPS or custom location)
   const sorted = useMemo(() => {
-    if (!userPos) return filtered;
+    if (!effectivePos) return filtered;
     return [...filtered].sort((a, b) => {
       const da =
         a.lat != null && a.lng != null
-          ? distanceKm(userPos.lat, userPos.lng, a.lat, a.lng)
+          ? distanceKm(effectivePos.lat, effectivePos.lng, a.lat, a.lng)
           : Infinity;
       const db =
         b.lat != null && b.lng != null
-          ? distanceKm(userPos.lat, userPos.lng, b.lat, b.lng)
+          ? distanceKm(effectivePos.lat, effectivePos.lng, b.lat, b.lng)
           : Infinity;
       return da - db;
     });
-  }, [filtered, userPos]);
+  }, [filtered, effectivePos]);
 
   function getDistLabel(s: Seller): string | null {
-    if (!userPos || s.lat == null || s.lng == null) return null;
-    return fmtDist(distanceKm(userPos.lat, userPos.lng, s.lat, s.lng));
+    if (!effectivePos || s.lat == null || s.lng == null) return null;
+    return fmtDist(distanceKm(effectivePos.lat, effectivePos.lng, s.lat, s.lng));
   }
 
   return (
@@ -366,6 +419,97 @@ export function NearbyGrid() {
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Location filter */}
+          <div className="mx-auto max-w-[600px] px-4 pb-3">
+            {!locationOpen && !locationLabel && (
+              <button
+                onClick={() => setLocationOpen(true)}
+                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-400 transition hover:bg-white/[0.08]"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Near me
+              </button>
+            )}
+
+            {locationLabel && !locationOpen && (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-white"
+                  style={{ borderColor: "#7c5ce8", background: "rgba(124,92,232,0.15)" }}
+                >
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  {locationLabel}
+                  <button onClick={clearLocation} className="ml-0.5 text-zinc-400 hover:text-white">
+                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </span>
+              </div>
+            )}
+
+            {locationOpen && (
+              <div className="relative">
+                <div className="flex items-center gap-2 rounded-xl border border-[#7c5ce8]/60 bg-white/10 px-3 py-2">
+                  <svg className="h-4 w-4 flex-shrink-0 text-[#7c5ce8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={locationQuery}
+                    onChange={(e) => handleLocationInput(e.target.value)}
+                    placeholder="City, neighborhood, or address…"
+                    className="w-full bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
+                  />
+                  <button
+                    onClick={() => { setLocationOpen(false); setLocationQuery(""); setLocationResults([]); }}
+                    className="flex-shrink-0 text-zinc-500 hover:text-zinc-300"
+                  >
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Results dropdown */}
+                {(locationResults.length > 0 || locationSearching) && (
+                  <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#1a1a24] shadow-xl">
+                    {locationSearching && (
+                      <div className="flex items-center gap-2 px-4 py-3 text-xs text-zinc-500">
+                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7c5ce8]" />
+                        Searching…
+                      </div>
+                    )}
+                    {locationResults.map((r, i) => {
+                      const short = r.display_name.split(",").slice(0, 3).join(",").trim();
+                      return (
+                        <button
+                          key={i}
+                          onClick={() => selectLocation(r)}
+                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-zinc-300 transition hover:bg-white/[0.06]"
+                        >
+                          <svg className="h-3.5 w-3.5 flex-shrink-0 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <span className="truncate">{short}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
