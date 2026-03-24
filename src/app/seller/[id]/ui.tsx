@@ -869,29 +869,71 @@ function PostSparkButton({
 
 // ─── CTA by category ─────────────────────────────────────────────────────────
 
-const ctaLabelByCategory: Record<string, string> = {
-  food: "Place an order",
-  restaurant: "Place an order",
-  retail: "Place an order",
-  beauty: "Book appointment",
-  wellness: "Book appointment",
-  fitness: "Book appointment",
-  hair: "Book appointment",
-  massage: "Book appointment",
-  barber: "Book appointment",
-  home: "Get a quote",
-  home_services: "Get a quote",
-  cleaning: "Get a quote",
-  repair: "Get a quote",
-  freelance: "Get a quote",
-  creative: "Get a quote",
-  moving: "Get a quote",
-  tech: "Get a quote",
-};
+// ─── Save seller hook ───────────────────────────────────────────────────────
 
-function getSecondaryCta(category: string | null): string {
-  if (!category) return "Get a quote";
-  return ctaLabelByCategory[category.toLowerCase().trim()] ?? "Get a quote";
+function useSavedSeller(sellerId: string, supabase: ReturnType<typeof createSupabaseBrowserClient>) {
+  const [saved, setSaved] = useState(false);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    let canceled = false;
+    async function load() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user || canceled) return;
+      setUserId(user.id);
+      const { data } = await supabase
+        .from("saved_sellers")
+        .select("id")
+        .eq("buyer_id", user.id)
+        .eq("seller_id", sellerId)
+        .maybeSingle();
+      if (!canceled && data) setSaved(true);
+    }
+    load();
+    return () => { canceled = true; };
+  }, [supabase, sellerId]);
+
+  const toggle = useCallback(async () => {
+    if (!userId) {
+      router.push(`/auth?redirect=/seller/${sellerId}`);
+      return;
+    }
+    if (busy) return;
+    setBusy(true);
+    if (saved) {
+      await supabase.from("saved_sellers").delete().eq("buyer_id", userId).eq("seller_id", sellerId);
+      setSaved(false);
+    } else {
+      await supabase.from("saved_sellers").insert({ buyer_id: userId, seller_id: sellerId });
+      setSaved(true);
+    }
+    setBusy(false);
+  }, [supabase, userId, sellerId, saved, busy, router]);
+
+  return { saved, toggle, busy };
+}
+
+// ─── Smile count hook ───────────────────────────────────────────────────────
+
+function useSmileCount(sellerId: string, supabase: ReturnType<typeof createSupabaseBrowserClient>) {
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let canceled = false;
+    async function load() {
+      const { count: total } = await supabase
+        .from("smiles")
+        .select("id", { count: "exact", head: true })
+        .eq("seller_id", sellerId);
+      if (!canceled) setCount(total ?? 0);
+    }
+    load();
+    return () => { canceled = true; };
+  }, [supabase, sellerId]);
+
+  return count;
 }
 
 // ─── Owner hooks ──────────────────────────────────────────────────────────────
@@ -988,6 +1030,8 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
   const [seller, setSeller] = useState(initialSeller);
   const hue = getHue(seller.id);
   const { isOwner, supabase } = useOwnerCheck(seller.id);
+  const { saved, toggle: toggleSave, busy: saveBusy } = useSavedSeller(seller.id, supabase);
+  const smileCount = useSmileCount(seller.id, supabase);
   const [isOnline, setIsOnline] = useState(seller.is_online);
   const [showEditInfo, setShowEditInfo] = useState(false);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -1190,10 +1234,19 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
           <MessageButton seller={seller} variant="primary" />
           <button
             type="button"
-            className="w-full rounded-full border py-3 text-sm font-semibold transition active:scale-[0.97]"
-            style={{ borderColor: "#7c5ce8", color: "#7c5ce8" }}
+            onClick={toggleSave}
+            disabled={saveBusy}
+            className="flex w-full items-center justify-center gap-2 rounded-full border py-3 text-sm font-semibold transition active:scale-[0.97] disabled:opacity-50"
+            style={{
+              borderColor: saved ? "#7c5ce8" : "rgba(255,255,255,0.15)",
+              color: saved ? "#7c5ce8" : "rgba(255,255,255,0.7)",
+              background: saved ? "rgba(124,92,232,0.1)" : "transparent",
+            }}
           >
-            {getSecondaryCta(seller.category)}
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill={saved ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+            {saved ? "Saved" : "Save"}
           </button>
         </div>
       )}
@@ -1231,7 +1284,7 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
         {([
           { value: "94%", label: "Response rate" },
           { value: "~2 min", label: "Avg reply" },
-          { value: "😊 847", label: "Smiles" },
+          { value: `😊 ${smileCount ?? 0}`, label: "Smiles" },
           { value: "2 yr", label: "On Bloc" },
         ] as const).map((m) => (
           <div

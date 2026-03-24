@@ -294,6 +294,76 @@ with check (
   )
 );
 
+-- ─── Saved sellers (wishlist) ────────────────────────────────────────────────
+
+create table if not exists public.saved_sellers (
+  id uuid primary key default gen_random_uuid(),
+  buyer_id uuid not null references auth.users(id) on delete cascade,
+  seller_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists saved_sellers_unique on public.saved_sellers(buyer_id, seller_id);
+
+alter table public.saved_sellers enable row level security;
+
+drop policy if exists "saved_sellers_select_own" on public.saved_sellers;
+create policy "saved_sellers_select_own"
+on public.saved_sellers for select
+to authenticated
+using (auth.uid() = buyer_id);
+
+drop policy if exists "saved_sellers_insert_own" on public.saved_sellers;
+create policy "saved_sellers_insert_own"
+on public.saved_sellers for insert
+to authenticated
+with check (auth.uid() = buyer_id);
+
+drop policy if exists "saved_sellers_delete_own" on public.saved_sellers;
+create policy "saved_sellers_delete_own"
+on public.saved_sellers for delete
+to authenticated
+using (auth.uid() = buyer_id);
+
+-- ─── Smiles (post-conversation feedback) ────────────────────────────────────
+
+create table if not exists public.smiles (
+  id uuid primary key default gen_random_uuid(),
+  conversation_id uuid not null references public.conversations(id) on delete cascade,
+  buyer_id uuid not null references auth.users(id) on delete cascade,
+  seller_id uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists smiles_unique on public.smiles(conversation_id, buyer_id);
+
+alter table public.smiles enable row level security;
+
+drop policy if exists "smiles_select_participant" on public.smiles;
+create policy "smiles_select_participant"
+on public.smiles for select
+to authenticated
+using (auth.uid() = buyer_id or auth.uid() = seller_id);
+
+drop policy if exists "smiles_insert_buyer" on public.smiles;
+create policy "smiles_insert_buyer"
+on public.smiles for insert
+to authenticated
+with check (auth.uid() = buyer_id);
+
+drop policy if exists "smiles_delete_buyer" on public.smiles;
+create policy "smiles_delete_buyer"
+on public.smiles for delete
+to authenticated
+using (auth.uid() = buyer_id);
+
+-- Public count: anyone can count smiles for a seller (for trust metrics)
+drop policy if exists "smiles_count_public" on public.smiles;
+create policy "smiles_count_public"
+on public.smiles for select
+to anon, authenticated
+using (true);
+
 -- ─── Storage: avatars ────────────────────────────────────────────────────────
 -- Run once in Supabase SQL editor:
 --

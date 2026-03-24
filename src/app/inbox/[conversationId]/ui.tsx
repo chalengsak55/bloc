@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
@@ -115,6 +115,57 @@ function Bubble({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+// ─── Smile hook ──────────────────────────────────────────────────────────────
+
+function useSmile(
+  conversationId: string,
+  sellerId: string | null,
+  userId: string | null,
+  supabase: ReturnType<typeof createSupabaseBrowserClient>,
+) {
+  const [smiled, setSmiled] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    if (!userId) return;
+    let canceled = false;
+    supabase
+      .from("smiles")
+      .select("id")
+      .eq("conversation_id", conversationId)
+      .eq("buyer_id", userId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (!canceled && data) setSmiled(true);
+      });
+    return () => { canceled = true; };
+  }, [supabase, conversationId, userId]);
+
+  const toggle = useCallback(async () => {
+    if (!userId || !sellerId || busy) return;
+    setBusy(true);
+    if (smiled) {
+      await supabase.from("smiles").delete().eq("conversation_id", conversationId).eq("buyer_id", userId);
+      setSmiled(false);
+    } else {
+      await supabase.from("smiles").insert({
+        conversation_id: conversationId,
+        buyer_id: userId,
+        seller_id: sellerId,
+      });
+      setSmiled(true);
+      setFlash(true);
+      setTimeout(() => setFlash(false), 1500);
+    }
+    setBusy(false);
+  }, [supabase, conversationId, userId, sellerId, smiled, busy]);
+
+  return { smiled, toggle, busy, flash };
+}
+
+// ─── Chat view ───────────────────────────────────────────────────────────────
+
 export function ChatView({ conversationId }: { conversationId: string }) {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const router = useRouter();
@@ -126,6 +177,8 @@ export function ChatView({ conversationId }: { conversationId: string }) {
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  const smile = useSmile(conversationId, seller?.id ?? null, userId, supabase);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -368,6 +421,38 @@ export function ChatView({ conversationId }: { conversationId: string }) {
             <div ref={bottomRef} />
           </div>
         </div>
+
+        {/* ── Smile bar ── */}
+        {!loading && messages.length > 0 && (
+          <div className="flex-shrink-0 border-t border-white/[0.06] bg-black/40 backdrop-blur-sm">
+            <div className="mx-auto flex max-w-xl items-center justify-center px-4 py-2">
+              <button
+                onClick={smile.toggle}
+                disabled={smile.busy}
+                className="flex items-center gap-2 rounded-full px-4 py-1.5 text-sm transition active:scale-95 disabled:opacity-50"
+                style={{
+                  background: smile.smiled ? "rgba(124,92,232,0.15)" : "rgba(255,255,255,0.05)",
+                  color: smile.smiled ? "#7c5ce8" : "#a1a1aa",
+                  border: `1px solid ${smile.smiled ? "rgba(124,92,232,0.3)" : "rgba(255,255,255,0.08)"}`,
+                }}
+              >
+                <span className="text-base">{smile.smiled ? "😊" : "🙂"}</span>
+                {smile.smiled ? "Smiled!" : `Give ${firstName} a smile`}
+              </button>
+            </div>
+            {smile.flash && (
+              <div className="pointer-events-none absolute inset-x-0 top-1/2 flex -translate-y-1/2 items-center justify-center">
+                <div
+                  className="flex items-center gap-2 rounded-full bg-[#7c5ce8]/90 px-5 py-2.5 shadow-lg backdrop-blur-sm"
+                  style={{ animation: "msg-in 0.3s ease-out" }}
+                >
+                  <span className="text-lg">😊</span>
+                  <span className="text-sm font-bold text-white">Smiled!</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* ── Input bar ── */}
         <div className="flex-shrink-0 border-t border-white/[0.06] bg-black/70 pb-safe backdrop-blur-xl">

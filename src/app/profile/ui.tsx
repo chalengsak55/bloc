@@ -17,6 +17,13 @@ type Broadcast = {
   created_at: string;
 };
 
+type SavedSeller = {
+  seller_id: string;
+  display_name: string | null;
+  category: string | null;
+  avatar_url: string | null;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function relativeTime(iso: string): string {
@@ -93,6 +100,7 @@ export function BuyerProfile() {
   const [loading, setLoading] = useState(true);
   const [signingOut, setSigningOut] = useState(false);
   const [pastOpen, setPastOpen] = useState(false);
+  const [savedSellers, setSavedSellers] = useState<SavedSeller[]>([]);
   const [canceling, setCanceling] = useState<Set<string>>(new Set());
   const [deleting, setDeleting] = useState<Set<string>>(new Set());
   const [actionError, setActionError] = useState<string | null>(null);
@@ -122,8 +130,8 @@ export function BuyerProfile() {
       if (canceled) return;
       setUser(user);
 
-      // Load profile + broadcasts in parallel
-      const [{ data: profile }, { data: requests }] = await Promise.all([
+      // Load profile + broadcasts + saved sellers in parallel
+      const [{ data: profile }, { data: requests }, { data: savedRows }] = await Promise.all([
         supabase
           .from("profiles")
           .select("display_name, avatar_url")
@@ -135,6 +143,11 @@ export function BuyerProfile() {
           .eq("buyer_id", user.id)
           .order("created_at", { ascending: false })
           .limit(50),
+        supabase
+          .from("saved_sellers")
+          .select("seller_id")
+          .eq("buyer_id", user.id)
+          .order("created_at", { ascending: false }),
       ]);
 
       if (canceled) return;
@@ -146,6 +159,25 @@ export function BuyerProfile() {
       } else {
         // No profile row yet — seed display name from OAuth metadata only
         setDisplayName((user.user_metadata?.full_name as string) ?? "");
+      }
+
+      // Fetch saved seller profiles
+      if (savedRows && savedRows.length > 0) {
+        const sellerIds = savedRows.map((r) => r.seller_id);
+        const { data: sellerProfiles } = await supabase
+          .from("profiles")
+          .select("id, display_name, category, avatar_url")
+          .in("id", sellerIds);
+        if (!canceled && sellerProfiles) {
+          setSavedSellers(
+            sellerIds
+              .map((sid) => {
+                const p = sellerProfiles.find((sp) => sp.id === sid);
+                return p ? { seller_id: p.id, display_name: p.display_name, category: p.category, avatar_url: p.avatar_url } : null;
+              })
+              .filter(Boolean) as SavedSeller[],
+          );
+        }
       }
 
       setBroadcasts((requests ?? []) as Broadcast[]);
@@ -416,6 +448,47 @@ export function BuyerProfile() {
               )}
             </button>
           </div>
+
+          {/* Saved sellers */}
+          {!loading && savedSellers.length > 0 && (
+            <div>
+              <h2 className="mb-3 text-xs font-medium uppercase tracking-widest text-zinc-600">
+                Saved ({savedSellers.length})
+              </h2>
+              <div className="space-y-2">
+                {savedSellers.map((s) => {
+                  const hue = (() => { let h = 0; for (let i = 0; i < s.seller_id.length; i++) h = (h * 31 + s.seller_id.charCodeAt(i)) % 360; return h; })();
+                  const initials = (s.display_name ?? "??").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+                  return (
+                    <Link
+                      key={s.seller_id}
+                      href={`/seller/${s.seller_id}`}
+                      className="flex items-center gap-3 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition-colors hover:bg-white/[0.06] active:bg-white/[0.08]"
+                    >
+                      {s.avatar_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={s.avatar_url} alt={s.display_name ?? ""} className="h-10 w-10 rounded-full object-cover" />
+                      ) : (
+                        <div
+                          className="flex h-10 w-10 items-center justify-center rounded-full text-xs font-bold text-white"
+                          style={{ background: `linear-gradient(135deg, hsl(${hue},55%,45%), hsl(${(hue + 60) % 360},55%,40%))` }}
+                        >
+                          {initials}
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-zinc-100">{s.display_name ?? "Seller"}</p>
+                        {s.category && <p className="text-xs text-zinc-500">{s.category}</p>}
+                      </div>
+                      <svg className="h-4 w-4 flex-shrink-0 text-zinc-700" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Active broadcasts */}
           <div>
