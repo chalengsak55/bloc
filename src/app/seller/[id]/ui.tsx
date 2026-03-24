@@ -111,7 +111,7 @@ function MessageButton({ seller, variant = "secondary" }: { seller: SellerProfil
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
         </span>
       ) : (
-        isPrimary ? "Chat with agent" : "Message"
+        isPrimary ? `Ask ${seller.display_name || "agent"}` : "Message"
       )}
     </button>
   );
