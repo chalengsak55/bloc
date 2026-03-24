@@ -1284,9 +1284,9 @@ export function SellerStorefront({ seller: initialSeller }: { seller: SellerProf
         {([
           { value: "94%", label: "Response rate" },
           { value: "~2 min", label: "Avg reply" },
-          { value: `😊 ${smileCount ?? 0}`, label: "Smiles" },
+          ...((smileCount ?? 0) >= 5 ? [{ value: `${smileCount}%`, label: "Smiles" }] : []),
           { value: "2 yr", label: "On Bloc" },
-        ] as const).map((m) => (
+        ] as { value: string; label: string }[]).map((m) => (
           <div
             key={m.label}
             className="flex flex-1 flex-col items-center rounded-2xl py-2.5"
