@@ -632,8 +632,8 @@ function StorefrontTabs({ seller, isOwner, supabase }: { seller: SellerProfile; 
                         </div>
                       )}
                     </div>
-                    {/* Spark under card — buyer only */}
-                    {!isOwner && (
+                    {/* Spark under card — buyer only, hide if 0 */}
+                    {!isOwner && (sparkCounts[p.id] ?? 0) > 0 && (
                       <div className="mt-1 px-1">
                         <PostSparkButton
                           postId={p.id}
@@ -831,10 +831,10 @@ function PostSparkButton({
       onClick={handleClick}
       className="flex items-center gap-1 text-xs transition active:scale-[0.9]"
     >
-      <svg className={`h-3.5 w-3.5 ${sparked ? "text-[#7c5ce8]" : "text-zinc-500"}`} viewBox="0 0 24 24" fill="currentColor">
+      <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="#7c5ce8">
         <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
       </svg>
-      {count > 0 && <span className={sparked ? "font-semibold text-[#7c5ce8]" : "text-zinc-500"}>{count}</span>}
+      {count > 0 && <span className="font-semibold" style={{ color: "#7c5ce8" }}>{count}</span>}
     </button>
   );
 }
