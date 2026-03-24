@@ -280,109 +280,83 @@ function FullscreenViewer({
             msOverflowStyle: "none",
           }}
         >
-          {posts.map((p, i) => (
-            <div
-              key={p.id}
-              data-index={i}
-              className="relative flex h-screen w-full flex-shrink-0 items-center justify-center bg-black"
-              style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
-            >
-              {p.media_type === "video" ? (
-                <video
-                  src={p.media_url}
-                  autoPlay={i === initialIndex}
-                  muted={i !== initialIndex}
-                  playsInline
-                  loop
-                  onClick={handleVideoTap}
-                  className="h-full w-full cursor-pointer object-contain"
-                />
-              ) : (
-                <RetryImage
-                  src={p.media_url}
-                  alt={p.caption ?? "Post"}
-                  className="h-full w-full object-contain"
-                />
-              )}
+          {posts.map((p, i) => {
+            const text = p.caption ? p.caption.replace(/<[^>]*>/g, "") : "";
+            const hasCaption = text.length > 0 && !/^\s*</.test(p.caption ?? "");
+            const isExpanded = expandedCaption === p.id;
+            const sparkCount = sparkCounts[p.id] ?? 0;
 
-              {/* Spark flash centered */}
-              {sparkFlashId === p.id && <SparkFlash />}
-              {/* Spark — TikTok sidebar */}
-              <div className="absolute right-3 top-1/2 z-20 -translate-y-1/2">
-                <PostSparkButton
-                  postId={p.id}
-                  count={sparkCounts[p.id] ?? 0}
-                  sparked={userSparks.has(p.id)}
-                  onToggle={toggleSpark}
-                  onFlash={onSparkFlash}
-                  variant="large"
-                />
-              </div>
+            return (
+              <div
+                key={p.id}
+                data-index={i}
+                className="flex h-screen w-full flex-shrink-0 flex-col bg-black"
+                style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
+              >
+                {/* Fixed image — 280px, never moves */}
+                <div className="relative w-full flex-shrink-0" style={{ height: 280 }}>
+                  {p.media_type === "video" ? (
+                    <video
+                      src={p.media_url}
+                      autoPlay={i === initialIndex}
+                      muted={i !== initialIndex}
+                      playsInline
+                      loop
+                      onClick={handleVideoTap}
+                      className="h-full w-full cursor-pointer object-cover"
+                    />
+                  ) : (
+                    <RetryImage
+                      src={p.media_url}
+                      alt={p.caption ?? "Post"}
+                      className="h-full w-full object-cover"
+                    />
+                  )}
+                  {sparkFlashId === p.id && <SparkFlash />}
+                </div>
 
-              {/* Caption overlay — RedNote style */}
-              {p.caption && !/^\s*</.test(p.caption) && (() => {
-                const text = p.caption!.replace(/<[^>]*>/g, "");
-                const isExpanded = expandedCaption === p.id;
-                return (
-                  <>
-                    {/* Collapsed: 2-line preview at bottom */}
-                    {!isExpanded && (
-                      <div
-                        className="absolute inset-x-0 bottom-16 z-10 bg-gradient-to-t from-black/60 to-transparent px-5 pb-4 pt-10"
-                        onClick={(e) => e.stopPropagation()}
+                {/* Below image: spark count + caption */}
+                <div className="flex-1 overflow-y-auto px-4 pt-3" onClick={(e) => e.stopPropagation()}>
+                  {/* Spark count */}
+                  <div className="mb-2 flex items-center gap-1.5">
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#7c5ce8">
+                      <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
+                    </svg>
+                    <span className="text-sm font-semibold" style={{ color: "#7c5ce8" }}>
+                      {sparkCount}
+                    </span>
+                  </div>
+
+                  {/* Caption with expand/collapse */}
+                  {hasCaption && (
+                    <div>
+                      <p
+                        className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200"
+                        style={!isExpanded ? {
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical" as const,
+                          overflow: "hidden",
+                        } : undefined}
                       >
-                        <p className="line-clamp-2 text-sm leading-snug text-white">{text}</p>
-                        {text.length > 80 && (
-                          <button
-                            type="button"
-                            onClick={() => setExpandedCaption(p.id)}
-                            className="mt-1 text-xs font-semibold text-zinc-400 transition hover:text-white"
-                          >
-                            more
-                          </button>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Expanded: bottom sheet with full text */}
-                    {isExpanded && (
-                      <div
-                        className="absolute inset-0 z-30 flex flex-col"
-                        onClick={(e) => { e.stopPropagation(); setExpandedCaption(null); }}
-                      >
-                        {/* Image shrinks to top 40% */}
-                        <div className="h-[40%] flex-shrink-0" />
-                        {/* Text panel */}
-                        <div
-                          className="flex-1 overflow-y-auto rounded-t-3xl bg-[#0d0d12] px-5 pb-10 pt-6"
-                          style={{
-                            animation: "slideUpCaption 0.3s ease-out",
-                            boxShadow: "0 -8px 30px rgba(0,0,0,0.5)",
-                          }}
-                          onClick={(e) => e.stopPropagation()}
+                        {text}
+                      </p>
+                      {text.length > 80 && (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedCaption(isExpanded ? null : p.id)}
+                          className="mt-1 text-xs font-semibold transition"
+                          style={{ color: "#7c5ce8" }}
                         >
-                          {/* Drag handle */}
-                          <div className="mb-4 flex justify-center">
-                            <div className="h-1 w-10 rounded-full bg-zinc-600" />
-                          </div>
-                          <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-200">
-                            {text}
-                          </p>
-                          <button
-                            type="button"
-                            onClick={() => setExpandedCaption(null)}
-                            className="mt-6 text-xs font-semibold text-zinc-500 transition hover:text-white"
-                          >
-                            show less
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </>
-                );
-              })()}
-            </div>
-          ))}
+                          {isExpanded ? "show less" : "more"}
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         {/* Play/Pause icon flash */}
