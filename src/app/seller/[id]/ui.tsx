@@ -315,16 +315,17 @@ function FullscreenViewer({
                   {sparkFlashId === p.id && <SparkFlash />}
                 </div>
 
-                {/* Below image: spark count + caption */}
+                {/* Below image: spark button + caption */}
                 <div className="flex-1 overflow-y-auto px-4 pt-3" onClick={(e) => e.stopPropagation()}>
-                  {/* Spark count */}
-                  <div className="mb-2 flex items-center gap-1.5">
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="#7c5ce8">
-                      <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
-                    </svg>
-                    <span className="text-sm font-semibold" style={{ color: "#7c5ce8" }}>
-                      {sparkCount}
-                    </span>
+                  {/* Spark button (tappable) */}
+                  <div className="mb-2">
+                    <PostSparkButton
+                      postId={p.id}
+                      count={sparkCount}
+                      sparked={userSparks.has(p.id)}
+                      onToggle={toggleSpark}
+                      onFlash={onSparkFlash}
+                    />
                   </div>
 
                   {/* Caption with expand/collapse */}
