@@ -4,7 +4,7 @@ const schema = z.object({
   NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
   NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(10),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(10).optional(),
-  ANTHROPIC_API_KEY: z.string().min(10).optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
 });
 
 let cached: z.infer<typeof schema> | null = null;

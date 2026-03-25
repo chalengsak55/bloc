@@ -18,6 +18,8 @@ type Seller = {
   lat?: number | null;
   lng?: number | null;
   avatar_url?: string | null;
+  is_ghost?: boolean;
+  place_id?: string;
 };
 
 type TickerItem = {
@@ -206,7 +208,11 @@ export function NearbyGrid() {
   const effectivePos = customPos ?? userPos;
 
   function handleMessage(seller: Seller) {
-    router.push(`/seller/${seller.id}`);
+    if (seller.is_ghost && seller.place_id) {
+      router.push(`/ghost/${seller.place_id}`);
+    } else {
+      router.push(`/seller/${seller.id}`);
+    }
   }
 
   // Geolocation
@@ -218,18 +224,43 @@ export function NearbyGrid() {
     );
   }, []);
 
-// Fetch all sellers once (filtering is client-side)
+// Fetch all sellers + ghost businesses (filtering is client-side)
   useEffect(() => {
     let canceled = false;
     async function load() {
       setLoading(true);
       try {
-        const { data } = await supabase
+        // Fetch real sellers
+        const { data: realSellers } = await supabase
           .from("profiles")
           .select("id,display_name,category,location_text,is_online,lat,lng,avatar_url")
           .eq("role", "seller")
           .limit(50);
-        if (!canceled) setSellers((data ?? []) as Seller[]);
+
+        // Fetch ghost businesses (unclaimed)
+        const { data: ghosts } = await supabase
+          .from("ghost_businesses")
+          .select("id,place_id,name,category,address,lat,lng,photo_url,opening_hours,timezone")
+          .eq("claimed", false)
+          .limit(200);
+
+        if (canceled) return;
+
+        // Transform ghosts into Seller shape
+        const ghostSellers: Seller[] = (ghosts ?? []).map((g: Record<string, unknown>) => ({
+          id: `ghost:${g.place_id}`,
+          display_name: g.name as string,
+          category: g.category as string | null,
+          location_text: g.address as string | null,
+          is_online: true, // ghost businesses always "available"
+          lat: g.lat as number | null,
+          lng: g.lng as number | null,
+          avatar_url: g.photo_url as string | null,
+          is_ghost: true,
+          place_id: g.place_id as string,
+        }));
+
+        setSellers([...(realSellers ?? []) as Seller[], ...ghostSellers]);
       } finally {
         if (!canceled) setLoading(false);
       }
@@ -367,7 +398,7 @@ export function NearbyGrid() {
             >
               Nearby.
             </h1>
-            <span className="text-xs text-zinc-500">{sellers.length} agents</span>
+            <span className="text-xs text-zinc-500">{sorted.length} agents</span>
           </div>
         </div>
 
