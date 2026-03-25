@@ -290,10 +290,10 @@ function FullscreenViewer({
               <div
                 key={p.id}
                 data-index={i}
-                className="flex h-screen w-full flex-shrink-0 flex-col bg-black"
+                className="flex h-screen w-full flex-shrink-0 flex-col items-center justify-center bg-black"
                 style={{ scrollSnapAlign: "start", scrollSnapStop: "always" }}
               >
-                {/* Fixed image — 280px, never moves */}
+                {/* Fixed image — 280px, centered vertically */}
                 <div className="relative w-full flex-shrink-0" style={{ height: 280 }}>
                   {p.media_type === "video" ? (
                     <video
@@ -316,7 +316,7 @@ function FullscreenViewer({
                 </div>
 
                 {/* Below image: spark button + caption */}
-                <div className="flex-1 overflow-y-auto px-4 pt-3" onClick={(e) => e.stopPropagation()}>
+                <div className="w-full overflow-y-auto px-4 pt-3" style={{ maxHeight: "40vh" }} onClick={(e) => e.stopPropagation()}>
                   {/* Spark button (tappable) */}
                   <div className="mb-2">
                     <PostSparkButton
