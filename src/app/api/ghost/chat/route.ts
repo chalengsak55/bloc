@@ -44,13 +44,39 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
   }
 
-  // Check if this is the first message in this conversation
+  // Rate limit: max 100 ghost conversations per day
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const { count: dailyConvCount } = await supabase
+    .from("ghost_conversations")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", today.toISOString());
+
+  if ((dailyConvCount ?? 0) >= 100) {
+    return NextResponse.json({
+      error: "Daily ghost chat limit reached. Please try again tomorrow.",
+    }, { status: 429 });
+  }
+
+  // Check message count in this conversation
   const { count: existingCount } = await supabase
     .from("ghost_messages")
     .select("id", { count: "exact", head: true })
     .eq("ghost_conversation_id", conv.id);
 
   const isFirstMessage = (existingCount ?? 0) === 0;
+  const buyerMessageCount = Math.ceil((existingCount ?? 0) / 2); // each exchange = buyer + agent
+
+  // Max 5 messages per conversation
+  if (buyerMessageCount >= 5) {
+    const phoneText = ghost.phone ? `Call them at ${ghost.phone}` : "Contact them directly";
+    return NextResponse.json({
+      ok: true,
+      conversationId: conv.id,
+      agentResponse: `Want to speak directly? ${phoneText} or claim this business on Bloc.`,
+      limitReached: true,
+    });
+  }
 
   // Insert buyer message
   await supabase.from("ghost_messages").insert({
@@ -90,13 +116,13 @@ Rules:
 5. If they want to book/order, suggest contacting the business directly.
 6. Mention that the business owner can claim this listing on Bloc to respond personally.`;
 
-  // Get last 10 messages for context
+  // Get last 10 messages for context (5 exchanges)
   const { data: recentMsgs } = await supabase
     .from("ghost_messages")
     .select("sender_type, content")
     .eq("ghost_conversation_id", conv.id)
     .order("created_at", { ascending: true })
-    .limit(10);
+    .limit(10); // 5 buyer + 5 agent
 
   const chatHistory = (recentMsgs ?? []).map((m) => ({
     role: m.sender_type === "buyer" ? "user" as const : "assistant" as const,
