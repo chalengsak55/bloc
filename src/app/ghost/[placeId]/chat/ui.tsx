@@ -303,7 +303,7 @@ export function GhostChat({
           />
           <button
             type="button"
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={!input.trim() || sending}
             className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-white transition disabled:opacity-30"
             style={{ background: "#7c5ce8" }}
