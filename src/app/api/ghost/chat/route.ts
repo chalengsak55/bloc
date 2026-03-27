@@ -3,6 +3,95 @@ import { createSupabaseServiceClient, createSupabaseServerClient } from "@/lib/s
 import Anthropic from "@anthropic-ai/sdk";
 import { isOpenNow, formatWeeklyHours, type GooglePeriod } from "@/lib/ghost-hours";
 
+// ─── In-memory response cache (per business per intent) ─────────────────────
+// Key: `${placeId}:${intent}`, Value: { response, timestamp }
+const responseCache = new Map<string, { response: string; ts: number }>();
+const CACHE_TTL = 1000 * 60 * 30; // 30 minutes
+
+// ─── Intent detection ────────────────────────────────────────────────────────
+
+type Intent = "hours" | "hours_tomorrow" | "phone" | "address" | "website" | "rating" | "open_now" | "unknown";
+
+function detectIntent(message: string): Intent {
+  const m = message.toLowerCase().trim();
+
+  // Open now?
+  if (/\b(open now|open right now|are (you|they) open|is it open|still open|open today)\b/.test(m)) return "open_now";
+
+  // Hours tomorrow
+  if (/\b(hours? tomorrow|tomorrow.*(hours?|open|close)|open tomorrow|when.*open tomorrow)\b/.test(m)) return "hours_tomorrow";
+
+  // Hours / schedule
+  if (/\b(hours?|schedule|open(ing)?|clos(e|ing)|when .*(open|close)|what time|business hours)\b/.test(m)) return "hours";
+
+  // Phone
+  if (/\b(phone|call|number|tel(ephone)?|contact number|dial)\b/.test(m)) return "phone";
+
+  // Address / location
+  if (/\b(address|where|location|directions?|map|how (to |do i )?(get|find) (there|it|you|them))\b/.test(m)) return "address";
+
+  // Website
+  if (/\b(website|web|url|site|online|link|homepage)\b/.test(m)) return "website";
+
+  // Rating
+  if (/\b(rating|rated|stars?|reviews?|score|how good)\b/.test(m)) return "rating";
+
+  return "unknown";
+}
+
+function answerFromDB(
+  intent: Intent,
+  ghost: Record<string, unknown>,
+  openStatus: { isOpen: boolean; nextChange: string | null },
+  hoursText: string,
+): string | null {
+  const name = ghost.name as string;
+
+  switch (intent) {
+    case "open_now":
+      if (openStatus.isOpen) {
+        return `Yes, ${name} is currently open!${openStatus.nextChange ? ` ${openStatus.nextChange}.` : ""}`;
+      }
+      return `${name} is currently closed.${openStatus.nextChange ? ` ${openStatus.nextChange}.` : ""}`;
+
+    case "hours_tomorrow": {
+      const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowDay = days[tomorrow.getDay()];
+      const lines = hoursText.split("\n");
+      const tomorrowLine = lines.find((l) => l.startsWith(tomorrowDay));
+      if (tomorrowLine) return `${name} tomorrow (${tomorrowLine}).`;
+      return `Sorry, I don't have hours for tomorrow.`;
+    }
+
+    case "hours":
+      if (hoursText === "Hours not available") return `Sorry, I don't have hours info for ${name}.`;
+      return `Here are the hours for ${name}:\n${hoursText}`;
+
+    case "phone":
+      if (ghost.phone) return `You can reach ${name} at ${ghost.phone}.`;
+      return `Sorry, I don't have a phone number for ${name}.`;
+
+    case "address":
+      if (ghost.address) return `${name} is located at ${ghost.address}.`;
+      return `Sorry, I don't have the address for ${name}.`;
+
+    case "website":
+      if (ghost.website) return `You can visit ${name}'s website at ${ghost.website}`;
+      return `Sorry, I don't have a website for ${name}.`;
+
+    case "rating":
+      if (ghost.rating) return `${name} has a ${ghost.rating}/5 rating on Google.`;
+      return `Sorry, I don't have rating info for ${name}.`;
+
+    default:
+      return null; // unknown → needs Claude
+  }
+}
+
+// ─── Main handler ────────────────────────────────────────────────────────────
+
 export async function POST(req: NextRequest) {
   // Auth check
   const authClient = await createSupabaseServerClient();
@@ -65,7 +154,7 @@ export async function POST(req: NextRequest) {
     .eq("ghost_conversation_id", conv.id);
 
   const isFirstMessage = (existingCount ?? 0) === 0;
-  const buyerMessageCount = Math.ceil((existingCount ?? 0) / 2); // each exchange = buyer + agent
+  const buyerMessageCount = Math.ceil((existingCount ?? 0) / 2);
 
   // Max 5 messages per conversation
   if (buyerMessageCount >= 5) {
@@ -86,14 +175,35 @@ export async function POST(req: NextRequest) {
     content: message,
   });
 
-  // Build system prompt with ghost business info
+  // ── Intent detection: answer from DB if possible ──
   const openStatus = isOpenNow(ghost.opening_hours as GooglePeriod[], ghost.timezone);
   const hours = formatWeeklyHours(ghost.opening_hours as GooglePeriod[]);
   const hoursText = hours.length > 0
     ? hours.map((h) => `${h.day}: ${h.hours}`).join("\n")
     : "Hours not available";
 
-  const systemPrompt = `You are a Ghost Agent representing "${ghost.name}", a ${ghost.category ?? "business"} located at ${ghost.address ?? "unknown location"}.
+  const intent = detectIntent(message);
+  let agentResponse: string | null = null;
+  let usedCache = false;
+
+  // Check cache for structured intents
+  if (intent !== "unknown") {
+    const cacheKey = `${placeId}:${intent}`;
+    const cached = responseCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+      agentResponse = cached.response;
+      usedCache = true;
+    } else {
+      agentResponse = answerFromDB(intent, ghost, openStatus, hoursText);
+      if (agentResponse) {
+        responseCache.set(cacheKey, { response: agentResponse, ts: Date.now() });
+      }
+    }
+  }
+
+  // ── Only call Claude for open-ended questions ──
+  if (!agentResponse) {
+    const systemPrompt = `You are a Ghost Agent representing "${ghost.name}", a ${ghost.category ?? "business"} located at ${ghost.address ?? "unknown location"}.
 
 You are NOT the real business owner. You are an automated agent on Bloc (mybloc.me) that responds using only publicly available Google data.
 
@@ -116,37 +226,37 @@ Rules:
 5. If they want to book/order, suggest contacting the business directly.
 6. Mention that the business owner can claim this listing on Bloc to respond personally.`;
 
-  // Get last 10 messages for context (5 exchanges)
-  const { data: recentMsgs } = await supabase
-    .from("ghost_messages")
-    .select("sender_type, content")
-    .eq("ghost_conversation_id", conv.id)
-    .order("created_at", { ascending: true })
-    .limit(10); // 5 buyer + 5 agent
+    // Get last 10 messages for context (5 exchanges)
+    const { data: recentMsgs } = await supabase
+      .from("ghost_messages")
+      .select("sender_type, content")
+      .eq("ghost_conversation_id", conv.id)
+      .order("created_at", { ascending: true })
+      .limit(10);
 
-  const chatHistory = (recentMsgs ?? []).map((m) => ({
-    role: m.sender_type === "buyer" ? "user" as const : "assistant" as const,
-    content: m.content,
-  }));
+    const chatHistory = (recentMsgs ?? []).map((m) => ({
+      role: m.sender_type === "buyer" ? "user" as const : "assistant" as const,
+      content: m.content,
+    }));
 
-  // Call Claude API
-  let agentResponse = "I'm having trouble responding right now. Please try calling the business directly.";
+    agentResponse = "I'm having trouble responding right now. Please try calling the business directly.";
 
-  try {
-    const anthropic = new Anthropic();
-    const completion = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 300,
-      system: systemPrompt,
-      messages: chatHistory,
-    });
+    try {
+      const anthropic = new Anthropic();
+      const completion = await anthropic.messages.create({
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 300,
+        system: systemPrompt,
+        messages: chatHistory,
+      });
 
-    const textBlock = completion.content.find((b) => b.type === "text");
-    if (textBlock && textBlock.type === "text") {
-      agentResponse = textBlock.text;
+      const textBlock = completion.content.find((b) => b.type === "text");
+      if (textBlock && textBlock.type === "text") {
+        agentResponse = textBlock.text;
+      }
+    } catch (err) {
+      console.error("Claude API error:", err);
     }
-  } catch (err) {
-    console.error("Claude API error:", err);
   }
 
   // Insert agent response
@@ -191,6 +301,8 @@ Rules:
     conversationId: conv.id,
     agentResponse,
     agentMessageId: agentMsg?.id,
+    cached: usedCache,
+    intent,
   });
 }
 

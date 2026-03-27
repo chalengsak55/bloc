@@ -110,9 +110,9 @@ export function GhostChat({
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
-  // Send message
-  const handleSend = useCallback(async () => {
-    const text = input.trim();
+  // Send message (accepts optional override for quick reply chips)
+  const handleSend = useCallback(async (overrideMessage?: string) => {
+    const text = (overrideMessage ?? input).trim();
     if (!text || sending) return;
 
     setSending(true);
@@ -222,6 +222,25 @@ export function GhostChat({
             <p className="mt-1 text-xs text-zinc-600">
               Ghost Agent responds with Google data only
             </p>
+
+            {/* Quick reply chips */}
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              {[
+                { label: "Open now?", msg: "Are you open right now?" },
+                { label: "Hours tomorrow", msg: "What are your hours tomorrow?" },
+                { label: "Phone number", msg: "What's your phone number?" },
+                { label: "Website", msg: "What's your website?" },
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  type="button"
+                  onClick={() => handleSend(chip.msg)}
+                  className="rounded-full border border-[#7c5ce8]/40 bg-[#7c5ce8]/10 px-3.5 py-1.5 text-xs font-medium text-[#7c5ce8] transition hover:bg-[#7c5ce8]/20 active:scale-95"
+                >
+                  {chip.label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
