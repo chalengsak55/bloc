@@ -17,7 +17,7 @@ export async function generateMetadata({
     .eq("place_id", placeId)
     .eq("claimed", false)
     .maybeSingle();
-  return { title: `Chat with ${data?.name ?? "Ghost Agent"} — Bloc` };
+  return { title: `Chat with ${data?.name ?? "AI Agent"} — Bloc` };
 }
 
 export default async function GhostChatPage({

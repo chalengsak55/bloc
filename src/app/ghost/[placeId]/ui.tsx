@@ -203,8 +203,8 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">Ghost Agent</p>
-            <p className="text-xs text-zinc-500">Auto-responds with Google info</p>
+            <p className="text-sm font-semibold text-white">AI Agent</p>
+            <p className="text-xs text-zinc-500">AI Agent · Public data only</p>
           </div>
         </div>
         {ghost.message_count > 0 && (
