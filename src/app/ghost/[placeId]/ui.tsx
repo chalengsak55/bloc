@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { isOpenNow, formatWeeklyHours, type GooglePeriod } from "@/lib/ghost-hours";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ function StarRating({ rating }: { rating: number }) {
 // ─── Ghost Storefront ─────────────────────────────────────────────────────────
 
 export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
+  const router = useRouter();
   const hue = getHue(ghost.place_id);
   const openStatus = useMemo(
     () => isOpenNow(ghost.opening_hours, ghost.timezone),
@@ -113,7 +115,7 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
         {/* Back button */}
         <button
           type="button"
-          onClick={() => window.history.back()}
+          onClick={() => { if (window.history.length > 1) router.back(); else router.push("/nearby"); }}
           className="absolute left-4 top-[max(env(safe-area-inset-top,12px),12px)] z-20 flex h-10 w-10 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm"
         >
           <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
