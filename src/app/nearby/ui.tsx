@@ -20,6 +20,7 @@ type Seller = {
   avatar_url?: string | null;
   is_ghost?: boolean;
   place_id?: string;
+  opening_hours?: string | null;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -58,6 +59,31 @@ function distanceKm(
 
 function isInBayArea(lat: number, lng: number): boolean {
   return distanceKm(lat, lng, SF_DEFAULT.lat, SF_DEFAULT.lng) <= BAY_AREA_RADIUS_KM;
+}
+
+function getStatusText(s: Seller): { text: string; color: string } {
+  if (!s.is_ghost) {
+    if (s.is_online) return { text: "Open now · agent ready", color: "#34d399" };
+    return { text: "Closed", color: "#71717a" };
+  }
+  // Ghost: try to parse opening_hours for next open time
+  if (s.opening_hours) {
+    try {
+      const hours = JSON.parse(s.opening_hours);
+      if (Array.isArray(hours) && hours.length > 0) {
+        const now = new Date();
+        const dayIndex = now.getDay(); // 0=Sun
+        const todayHours = hours.find((h: string) => {
+          const dayMap: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
+          return Object.entries(dayMap).some(([name, idx]) => idx === dayIndex && h.startsWith(name));
+        });
+        if (todayHours && !todayHours.includes("Closed")) {
+          return { text: "Claim this →", color: "#7c5ce8" };
+        }
+      }
+    } catch { /* ignore parse errors */ }
+  }
+  return { text: "Claim this →", color: "#7c5ce8" };
 }
 
 function fmtDist(km: number): string {
@@ -284,6 +310,7 @@ export function NearbyGrid() {
           avatar_url: g.photo_url as string | null,
           is_ghost: true,
           place_id: g.place_id as string,
+          opening_hours: g.opening_hours as string | null,
         }));
 
         setSellers([...(realSellers ?? []) as Seller[], ...ghostSellers]);
@@ -556,14 +583,16 @@ export function NearbyGrid() {
                       let hue = 0;
                       for (let i = 0; i < s.id.length; i++) hue = (hue * 31 + s.id.charCodeAt(i)) % 360;
 
+                      const status = getStatusText(s);
+
                       return (
                         <button
                           key={s.id}
                           onClick={() => handleMessage(s)}
-                          className="relative overflow-hidden rounded-xl border border-white/[0.08] transition-opacity active:opacity-80"
+                          className="relative overflow-hidden rounded-2xl border border-white/[0.08] transition-opacity active:opacity-80"
                           style={{ aspectRatio: "3/4" }}
                         >
-                          {/* Background */}
+                          {/* Full card photo background */}
                           {s.avatar_url ? (
                             <img
                               src={s.avatar_url}
@@ -581,9 +610,12 @@ export function NearbyGrid() {
                             </div>
                           )}
 
-                          {/* Live dot */}
+                          {/* Dark gradient overlay */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
+
+                          {/* Live dot — top right */}
                           {s.is_online && !s.is_ghost && (
-                            <div className="absolute right-2 top-2">
+                            <div className="absolute right-2.5 top-2.5">
                               <span className="relative inline-flex h-2 w-2">
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
@@ -591,19 +623,15 @@ export function NearbyGrid() {
                             </div>
                           )}
 
-                          {/* Ghost indicator */}
-                          {s.is_ghost && (
-                            <div className="absolute right-2 top-2">
-                              <span className="inline-block h-2 w-2 rounded-full bg-zinc-600" />
-                            </div>
-                          )}
-
                           {/* Bottom info */}
-                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-2 pt-8">
-                            <div className="truncate text-[11px] font-semibold leading-tight text-white">
+                          <div className="absolute inset-x-0 bottom-0 px-2.5 pb-2.5">
+                            <div className="truncate text-[12px] font-bold leading-tight text-white">
                               {s.display_name ?? "Business"}
                             </div>
-                            <div className="truncate text-[10px] text-zinc-400">
+                            <div className="truncate pt-0.5 text-[10px] font-medium" style={{ color: status.color }}>
+                              {status.text}
+                            </div>
+                            <div className="truncate pt-0.5 text-[10px] text-zinc-500">
                               {dist ? `${dist} · ${s.category ?? "—"}` : (s.category ?? "—")}
                             </div>
                           </div>
