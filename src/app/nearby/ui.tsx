@@ -23,6 +23,7 @@ type Seller = {
   opening_hours?: unknown;
   card_mode?: "slideshow" | "text" | "agent";
   card_text?: string;
+  slideshow_urls?: string[];
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -52,6 +53,11 @@ const DEMO_SELLERS: Seller[] = [
     avatar_url: "https://lh3.googleusercontent.com/place-photos/AL8-SNH5xH_durVppNRIUDBooTFDBQ14FGI_6pY0jAm-CGOuYyfpyD00SBiIt_debpmhBD-DPKR0H5gLwokEagBEkrD1RLucnlDwjSPQaUYYjX_2YZ57IBMFscv-1u2dIyLaRw73Az8jz_I-l0zxUVU=s4800-w800-h800",
     is_ghost: false,
     card_mode: "slideshow",
+    slideshow_urls: [
+      "https://lh3.googleusercontent.com/place-photos/AL8-SNH5xH_durVppNRIUDBooTFDBQ14FGI_6pY0jAm-CGOuYyfpyD00SBiIt_debpmhBD-DPKR0H5gLwokEagBEkrD1RLucnlDwjSPQaUYYjX_2YZ57IBMFscv-1u2dIyLaRw73Az8jz_I-l0zxUVU=s4800-w800-h800",
+      "https://lh3.googleusercontent.com/place-photos/AL8-SNGvG8pMBSiVpjEvcKs7DR4l5Lqhnerms5lUWDPDqyFqozIj7Q7Nc26WpBU7e63lRGBECac7nIfsk6rdZ1McYyTfXgOHMivsiFJUjOi5pA2PJlyEb7CZxcfTQ9xNGoEM4S1eFqCdOGG3eN146bI=s4800-w800-h800",
+      "https://lh3.googleusercontent.com/place-photos/AL8-SNFFdi71OhBM3s-mqNT_I20tu_eGF3z22vIunnpcu8CsPhBK5FkOCBn7uosB93vaGNUOwB81zeV8zUFCOegGrZvvDjG9PswzJJ46ok8pgg7NmrSdip7-UVOx50SwTNNjmaIz6454NcvVhYhAIw=s4800-w800-h800",
+    ],
   },
   {
     id: "demo:bay-cuts",
@@ -161,6 +167,34 @@ function getStatusText(s: Seller): { text: string; color: string } {
     } catch { /* ignore parse errors */ }
   }
   return { text: "Open", color: "#71717a" };
+}
+
+// ─── Slideshow background ────────────────────────────────────────────────────
+
+function SlideshowBg({ urls }: { urls: string[] }) {
+  const [index, setIndex] = useState(0);
+
+  useEffect(() => {
+    if (urls.length <= 1) return;
+    const timer = setInterval(() => {
+      setIndex((i) => (i + 1) % urls.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [urls.length]);
+
+  return (
+    <>
+      {urls.map((url, i) => (
+        <img
+          key={i}
+          src={url}
+          alt=""
+          className="absolute inset-0 h-full w-full object-cover transition-opacity duration-1000"
+          style={{ opacity: index === i ? 1 : 0 }}
+        />
+      ))}
+    </>
+  );
 }
 
 function fmtDist(km: number): string {
@@ -676,7 +710,9 @@ export function NearbyGrid() {
                           style={{ aspectRatio: "3/4" }}
                         >
                           {/* Full card photo background */}
-                          {s.avatar_url ? (
+                          {s.slideshow_urls && s.slideshow_urls.length > 1 ? (
+                            <SlideshowBg urls={s.slideshow_urls} />
+                          ) : s.avatar_url ? (
                             <img
                               src={s.avatar_url}
                               alt={s.display_name ?? ""}
