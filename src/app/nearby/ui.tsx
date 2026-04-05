@@ -31,6 +31,7 @@ type TickerItem = {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_RADIUS_KM = 10;
+const PAGE_SIZE = 9;
 
 
 
@@ -155,6 +156,7 @@ export function NearbyGrid() {
   const [searchQuery, setSearchQuery] = useState("");
   const [userPos, setUserPos] = useState<{ lat: number; lng: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [displayCount, setDisplayCount] = useState(PAGE_SIZE);
 
   // Location filter
   const [locationQuery, setLocationQuery] = useState("");
@@ -376,12 +378,18 @@ export function NearbyGrid() {
       });
   }, [filtered, effectivePos]);
 
+  // Reset display count when filters change
+  useEffect(() => {
+    setDisplayCount(PAGE_SIZE);
+  }, [activeFilter, searchQuery, effectivePos]);
+
   // Group by priority: claimed+open → claimed+closed → unclaimed ghosts
   const groups = useMemo(() => {
+    const visible = sorted.slice(0, displayCount);
     const claimedOpen: Seller[] = [];
     const claimedClosed: Seller[] = [];
     const unclaimed: Seller[] = [];
-    for (const s of sorted) {
+    for (const s of visible) {
       if (!s.is_ghost) {
         if (s.is_online) claimedOpen.push(s);
         else claimedClosed.push(s);
@@ -394,7 +402,11 @@ export function NearbyGrid() {
       { label: "Closed", sellers: claimedClosed },
       { label: "Unclaimed Businesses", sellers: unclaimed },
     ].filter((g) => g.sellers.length > 0);
-  }, [sorted]);
+  }, [sorted, displayCount]);
+
+  const totalCount = sorted.length;
+  const showingCount = Math.min(displayCount, totalCount);
+  const hasMore = displayCount < totalCount;
 
   function getDistLabel(s: Seller): string | null {
     if (!effectivePos || s.lat == null || s.lng == null) return null;
@@ -419,7 +431,11 @@ export function NearbyGrid() {
             >
               Nearby.
             </h1>
-            <span className="text-xs text-zinc-500">{sorted.length} agents</span>
+            <span className="text-xs text-zinc-500">
+              {effectivePos
+                ? `Showing ${showingCount} of ${totalCount} agents within ${DEFAULT_RADIUS_KM}km`
+                : `${totalCount} agents`}
+            </span>
           </div>
         </div>
 
@@ -601,18 +617,30 @@ export function NearbyGrid() {
               No agents nearby for this filter.
             </div>
           ) : (
-            groups.map((group) => (
-              <div key={group.label}>
-                <div className="px-4 pb-2 pt-4 text-xs font-medium text-zinc-500">
-                  {group.label}
+            <>
+              {groups.map((group) => (
+                <div key={group.label}>
+                  <div className="px-4 pb-2 pt-4 text-xs font-medium text-zinc-500">
+                    {group.label}
+                  </div>
+                  <div className="grid grid-cols-3">
+                    {group.sellers.map((s) => (
+                      <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
+                    ))}
+                  </div>
                 </div>
-                <div className="grid grid-cols-3">
-                  {group.sellers.map((s) => (
-                    <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
-                  ))}
+              ))}
+              {hasMore && (
+                <div className="flex justify-center py-6">
+                  <button
+                    onClick={() => setDisplayCount((c) => c + PAGE_SIZE)}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-2 text-xs font-medium text-zinc-400 transition hover:bg-white/[0.08]"
+                  >
+                    Load more
+                  </button>
                 </div>
-              </div>
-            ))
+              )}
+            </>
           )}
         </div>
       </div>
