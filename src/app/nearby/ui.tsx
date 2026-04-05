@@ -628,21 +628,6 @@ export function NearbyGrid() {
             <>
               {groups.map((group) => (
                 <div key={group.label}>
-                  {/* Section header */}
-                  <div className="flex items-center justify-between px-4 pb-2 pt-5">
-                    <div className="flex items-center gap-2">
-                      <span className={`inline-block h-2 w-2 rounded-full ${
-                        group.dot === "emerald" ? "bg-emerald-400" : "bg-zinc-600"
-                      }`} />
-                      <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                        {group.label}
-                      </span>
-                    </div>
-                    <span className="text-[11px] text-zinc-600">
-                      {group.sellers.length} {group.label === "UNCLAIMED NEARBY" ? "businesses" : "agents"}
-                    </span>
-                  </div>
-
                   {/* 3-col card grid */}
                   <div className="grid grid-cols-3 gap-2 px-4">
                     {group.sellers.map((s) => {
