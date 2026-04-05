@@ -376,6 +376,26 @@ export function NearbyGrid() {
       });
   }, [filtered, effectivePos]);
 
+  // Group by priority: claimed+open → claimed+closed → unclaimed ghosts
+  const groups = useMemo(() => {
+    const claimedOpen: Seller[] = [];
+    const claimedClosed: Seller[] = [];
+    const unclaimed: Seller[] = [];
+    for (const s of sorted) {
+      if (!s.is_ghost) {
+        if (s.is_online) claimedOpen.push(s);
+        else claimedClosed.push(s);
+      } else {
+        unclaimed.push(s);
+      }
+    }
+    return [
+      { label: "Open Now", sellers: claimedOpen },
+      { label: "Closed", sellers: claimedClosed },
+      { label: "Unclaimed Businesses", sellers: unclaimed },
+    ].filter((g) => g.sellers.length > 0);
+  }, [sorted]);
+
   function getDistLabel(s: Seller): string | null {
     if (!effectivePos || s.lat == null || s.lng == null) return null;
     return fmtDist(distanceKm(effectivePos.lat, effectivePos.lng, s.lat, s.lng));
@@ -573,7 +593,7 @@ export function NearbyGrid() {
                 />
               ))}
             </div>
-          ) : sorted.length === 0 ? (
+          ) : groups.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-sm text-zinc-500">
               <svg className="mb-3 h-8 w-8 opacity-30 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.7}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 6.75V15m6-6v8.25m.503-9.998l2.747-.756A.75.75 0 0119 7.944v9.32a.75.75 0 01-.503.712l-3 .822a.75.75 0 01-.397 0l-4.2-1.155a.75.75 0 00-.397 0l-2.747.756A.75.75 0 015 17.056V7.736a.75.75 0 01.503-.712l3-.822a.75.75 0 01.397 0l4.2 1.155a.75.75 0 00.397 0z" />
@@ -581,11 +601,18 @@ export function NearbyGrid() {
               No agents nearby for this filter.
             </div>
           ) : (
-            <div className="grid grid-cols-3">
-              {sorted.map((s) => (
-                <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
-              ))}
-            </div>
+            groups.map((group) => (
+              <div key={group.label}>
+                <div className="px-4 pb-2 pt-4 text-xs font-medium text-zinc-500">
+                  {group.label}
+                </div>
+                <div className="grid grid-cols-3">
+                  {group.sellers.map((s) => (
+                    <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
+                  ))}
+                </div>
+              </div>
+            ))
           )}
         </div>
       </div>
