@@ -30,6 +30,8 @@ type TickerItem = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
+const DEFAULT_RADIUS_KM = 10;
+
 
 
 // ─── Haversine distance (km) ──────────────────────────────────────────────────
@@ -359,20 +361,19 @@ export function NearbyGrid() {
     return result;
   }, [sellers, activeFilter, searchQuery]);
 
-  // Sort by distance if we have a position (GPS or custom location)
+  // Filter by radius and sort by distance if we have a position (GPS or custom location)
   const sorted = useMemo(() => {
     if (!effectivePos) return filtered;
-    return [...filtered].sort((a, b) => {
-      const da =
-        a.lat != null && a.lng != null
-          ? distanceKm(effectivePos.lat, effectivePos.lng, a.lat, a.lng)
-          : Infinity;
-      const db =
-        b.lat != null && b.lng != null
-          ? distanceKm(effectivePos.lat, effectivePos.lng, b.lat, b.lng)
-          : Infinity;
-      return da - db;
-    });
+    return [...filtered]
+      .filter((s) => {
+        if (s.lat == null || s.lng == null) return false;
+        return distanceKm(effectivePos.lat, effectivePos.lng, s.lat, s.lng) <= DEFAULT_RADIUS_KM;
+      })
+      .sort((a, b) => {
+        const da = distanceKm(effectivePos.lat, effectivePos.lng, a.lat!, a.lng!);
+        const db = distanceKm(effectivePos.lat, effectivePos.lng, b.lat!, b.lng!);
+        return da - db;
+      });
   }, [filtered, effectivePos]);
 
   function getDistLabel(s: Seller): string | null {
