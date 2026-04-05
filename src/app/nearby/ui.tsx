@@ -684,8 +684,17 @@ export function NearbyGrid() {
             </div>
           ) : (
             <>
-              {groups.map((group) => (
+              {groups.map((group) => {
+                const isUnclaimed = group.label === "UNCLAIMED NEARBY";
+                return (
                 <div key={group.label}>
+                  {/* Section label */}
+                  <div className="px-4 pb-1.5 pt-4">
+                    <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-widest" style={{ color: isUnclaimed ? "#52525b" : "#7c5ce8" }}>
+                      <span className="inline-block h-1.5 w-1.5 rounded-full" style={{ background: isUnclaimed ? "#52525b" : "#7c5ce8" }} />
+                      {isUnclaimed ? "Nearby" : "Agent on"}
+                    </span>
+                  </div>
                   {/* 3-col card grid */}
                   <div className="grid grid-cols-3 gap-2 px-4">
                     {group.sellers.map((s) => {
@@ -778,7 +787,8 @@ export function NearbyGrid() {
                     })}
                   </div>
                 </div>
-              ))}
+              );
+              })}
 
               {/* Load more bar */}
               <div className="mx-4 mt-4 rounded-xl bg-white/[0.04] py-3 text-center">
