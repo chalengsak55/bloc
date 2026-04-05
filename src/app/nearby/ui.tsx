@@ -29,13 +29,13 @@ type Seller = {
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const DEFAULT_RADIUS_KM = 10;
+const DEFAULT_RADIUS_KM = 15;
 const PAGE_SIZE = 9;
-const SF_DEFAULT = { lat: 37.6879, lng: -122.4702 };
+const SF_DEFAULT = { lat: 37.7749, lng: -122.4194 };
 const BAY_AREA_RADIUS_KM = 80;
 
 const DEMO_TICKER = [
-  "5 people looking for a DJ this weekend near Daly City",
+  "5 people looking for a DJ this weekend near San Francisco",
   "Someone needs an electrician tonight before 8pm",
   "2 requests for house cleaning this Saturday",
   "Looking for a private chef for dinner party tonight",
@@ -48,10 +48,10 @@ const DEMO_SELLERS: Seller[] = [
     place_id: "ChIJsY7b--IzjoARYxrox5OtNSk",
     display_name: "Mumu Hot Pot",
     category: "food",
-    location_text: "Daly City, CA",
+    location_text: "San Francisco, CA",
     is_online: true,
-    lat: 37.6879,
-    lng: -122.4702,
+    lat: 37.7749,
+    lng: -122.4194,
     avatar_url: "https://lh3.googleusercontent.com/place-photos/AL8-SNH5xH_durVppNRIUDBooTFDBQ14FGI_6pY0jAm-CGOuYyfpyD00SBiIt_debpmhBD-DPKR0H5gLwokEagBEkrD1RLucnlDwjSPQaUYYjX_2YZ57IBMFscv-1u2dIyLaRw73Az8jz_I-l0zxUVU=s4800-w800-h800",
     is_ghost: false,
     card_mode: "slideshow",
@@ -66,10 +66,10 @@ const DEMO_SELLERS: Seller[] = [
     place_id: "ChIJcXVKPv59j4ARdI92D1feakY",
     display_name: "Bay Cuts Barbershop",
     category: "barber",
-    location_text: "Daly City, CA",
+    location_text: "San Francisco, CA",
     is_online: true,
-    lat: 37.6850,
-    lng: -122.4680,
+    lat: 37.7730,
+    lng: -122.4170,
     avatar_url: "https://lh3.googleusercontent.com/places/ANXAkqFfklgcGv9FatIDvOFB2-S6E4f3o27Rfl-WgRw3NY8SedjLSmjDO0L38d0hbNZzB0E_38wQysXONfT9ffEO7evTG3Q_QMMwc3Q=s4800-w800-h800",
     is_ghost: false,
     card_mode: "text",
@@ -80,10 +80,10 @@ const DEMO_SELLERS: Seller[] = [
     place_id: "ChIJb_qTsQx8j4ARfZg9waOROwM",
     display_name: "Aleco Electric",
     category: "home",
-    location_text: "Daly City, CA",
+    location_text: "San Francisco, CA",
     is_online: true,
-    lat: 37.6900,
-    lng: -122.4720,
+    lat: 37.7770,
+    lng: -122.4220,
     avatar_url: "https://lh3.googleusercontent.com/places/ANXAkqG6SaBBO6Y7k6h36b4e738EqDx6Sm08a91Y7zbQpd8BXwDTrNR8A1ZJb-hxbqqwm3Nhib3qJjsDuD1hbmACrmTn9O0KdAu_yRw=s4800-w800-h800",
     is_ghost: false,
     card_mode: "agent",
@@ -392,8 +392,8 @@ export function NearbyGrid() {
       try {
         // Bounding box ~15km around position (generous to catch all within 10km radius)
         const pos = effectivePos;
-        const latDelta = 0.135; // ~15km in latitude
-        const lngDelta = 0.17;  // ~15km in longitude at SF latitude
+        const latDelta = 0.18; // ~20km in latitude (generous for 15km radius)
+        const lngDelta = 0.22;  // ~20km in longitude at SF latitude
 
         // Fetch real sellers
         const { data: realSellers } = await supabase
@@ -599,7 +599,7 @@ export function NearbyGrid() {
             <div className="flex items-center gap-2">
               <span className="text-sm">📍</span>
               <span className="text-xs text-zinc-300">
-                Daly City, CA
+                San Francisco, CA
                 <span className="ml-1 text-zinc-500">·</span>
                 <span className="ml-1 font-medium text-white">showing within {DEFAULT_RADIUS_KM}km</span>
               </span>
