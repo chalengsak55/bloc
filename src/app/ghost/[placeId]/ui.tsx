@@ -76,7 +76,7 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-// ─── Ghost Storefront ─────────────────────────────────────────────────────────
+// ─── Ghost Storefront (Unclaimed — muted/gray theme) ─────────────────────────
 
 export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
   const router = useRouter();
@@ -93,24 +93,26 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
 
   return (
     <div className="min-h-screen bg-[#0d0d12] pb-24">
-      {/* ── Hero ── */}
-      <div className="relative h-[55vh] w-full overflow-hidden">
+      {/* ── Hero (desaturated overlay for unclaimed look) ── */}
+      <div className="relative h-[50vh] w-full overflow-hidden">
         {ghost.photo_url ? (
           <RetryImage
             src={ghost.photo_url}
             alt={ghost.name}
             className="h-full w-full object-cover"
-          />
+            />
         ) : (
           <div
             className="h-full w-full"
             style={{
-              background: `linear-gradient(135deg, hsl(${hue},60%,25%), hsl(${(hue + 60) % 360},50%,20%))`,
+              background: `linear-gradient(135deg, hsl(${hue},30%,18%), hsl(${(hue + 60) % 360},20%,14%))`,
             }}
           />
         )}
-        {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-[#0d0d12]/40 to-transparent" />
+        {/* Muted overlay — desaturates the photo */}
+        <div className="absolute inset-0 bg-[#0d0d12]/50" />
+        {/* Bottom gradient */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0d0d12] via-transparent to-transparent" />
 
         {/* Back button */}
         <button
@@ -123,18 +125,25 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
           </svg>
         </button>
 
+        {/* Unclaimed badge — top right */}
+        <div className="absolute right-4 top-[max(env(safe-area-inset-top,12px),12px)] z-20">
+          <span className="rounded-full bg-zinc-800/80 px-2.5 py-1 text-[10px] font-medium text-zinc-400 backdrop-blur-sm">
+            Unclaimed
+          </span>
+        </div>
+
         {/* Open/Closed pill */}
-        <div className="absolute bottom-20 left-5 z-10">
+        <div className="absolute bottom-16 left-5 z-10">
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold tracking-wide ${
               openStatus.isOpen
                 ? "bg-emerald-500/20 text-emerald-400"
-                : "bg-red-500/20 text-red-400"
+                : "bg-zinc-700/40 text-zinc-400"
             }`}
           >
             <span
               className={`h-2 w-2 rounded-full ${
-                openStatus.isOpen ? "bg-emerald-400" : "bg-red-400"
+                openStatus.isOpen ? "bg-emerald-400" : "bg-zinc-500"
               }`}
             />
             {openStatus.isOpen ? "OPEN NOW" : "CLOSED"}
@@ -144,12 +153,12 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
         {/* Business name + category */}
         <div className="absolute bottom-4 left-5 right-5 z-10">
           <h1
-            className="text-3xl font-bold leading-tight text-white"
+            className="text-3xl font-bold leading-tight text-white/80"
             style={{ fontFamily: "'Instrument Serif', serif" }}
           >
             {ghost.name}
           </h1>
-          <p className="mt-1 text-sm text-zinc-400">
+          <p className="mt-1 text-sm text-zinc-500">
             {ghost.category && <span>{ghost.category}</span>}
             {ghost.address && (
               <>
@@ -161,57 +170,29 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
         </div>
       </div>
 
-      {/* ── Ghost badge ── */}
-      <div className="px-5 pt-3">
-        <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-400">
-          <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-          </svg>
-          Unclaimed business
-        </span>
-        {openStatus.nextChange && (
-          <p className="mt-1.5 text-xs text-zinc-500">{openStatus.nextChange}</p>
-        )}
-      </div>
-
-      {/* ── CTA Buttons ── */}
-      <div className="mt-5 flex flex-col gap-3 px-5">
-        {/* Claim button — primary */}
-        <Link
-          href={`/ghost/${ghost.place_id}/claim`}
-          className="flex items-center justify-center rounded-full py-3.5 text-center text-sm font-bold text-white transition active:scale-[0.98]"
-          style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)" }}
-        >
-          Claim this business
-        </Link>
-
-        {/* Ask button — secondary */}
-        <Link
-          href={`/ghost/${ghost.place_id}/chat`}
-          className="flex items-center justify-center rounded-full border border-[#7c5ce8]/40 py-3.5 text-center text-sm font-bold text-[#7c5ce8] transition active:scale-[0.98]"
-        >
-          Ask {firstName}
-        </Link>
-      </div>
-
-      {/* ── Agent bar ── */}
-      <div className="mx-5 mt-5 rounded-2xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
+      {/* ── Agent bar (muted/inactive gray) ── */}
+      <div className="mx-5 mt-4 rounded-2xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-500/20">
-            <svg className="h-4 w-4 text-amber-400" viewBox="0 0 24 24" fill="currentColor">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-zinc-800">
+            <svg className="h-4 w-4 text-zinc-500" viewBox="0 0 24 24" fill="currentColor">
               <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
             </svg>
           </div>
           <div>
-            <p className="text-sm font-semibold text-white">AI Agent</p>
-            <p className="text-xs text-zinc-500">AI Agent · Public data only</p>
+            <p className="text-sm font-semibold text-zinc-400">AI Agent</p>
+            <p className="text-[11px] text-zinc-600">Public data only · Not managed by owner</p>
           </div>
         </div>
-        {ghost.message_count > 0 && (
-          <p className="mt-2 text-xs text-zinc-500">
-            {ghost.message_count} {ghost.message_count === 1 ? "person has" : "people have"} messaged this business
-          </p>
-        )}
+      </div>
+
+      {/* ── Ask button (muted) ── */}
+      <div className="mt-4 px-5">
+        <Link
+          href={`/ghost/${ghost.place_id}/chat`}
+          className="flex items-center justify-center rounded-full border border-zinc-700 py-3 text-center text-sm font-semibold text-zinc-400 transition active:scale-[0.98]"
+        >
+          Ask about {firstName}
+        </Link>
       </div>
 
       {/* ── Rating ── */}
@@ -221,6 +202,10 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
         </div>
       )}
 
+      {openStatus.nextChange && (
+        <p className="mx-5 mt-2 text-xs text-zinc-600">{openStatus.nextChange}</p>
+      )}
+
       {/* ── Business Info ── */}
       <div className="mx-5 mt-5 flex flex-col gap-3">
         {ghost.address && (
@@ -228,24 +213,24 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
             href={ghost.google_maps_url ?? `https://maps.google.com/?q=${encodeURIComponent(ghost.address)}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-start gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition active:bg-white/[0.06]"
+            className="flex items-start gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 transition active:bg-zinc-800/50"
           >
-            <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-zinc-500" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="mt-0.5 h-4 w-4 flex-shrink-0 text-zinc-600" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" />
             </svg>
-            <span className="text-sm text-zinc-300">{ghost.address}</span>
+            <span className="text-sm text-zinc-400">{ghost.address}</span>
           </a>
         )}
 
         {ghost.phone && (
           <a
             href={`tel:${ghost.phone}`}
-            className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition active:bg-white/[0.06]"
+            className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 transition active:bg-zinc-800/50"
           >
-            <svg className="h-4 w-4 flex-shrink-0 text-zinc-500" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="h-4 w-4 flex-shrink-0 text-zinc-600" viewBox="0 0 24 24" fill="currentColor">
               <path d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z" />
             </svg>
-            <span className="text-sm text-zinc-300">{ghost.phone}</span>
+            <span className="text-sm text-zinc-400">{ghost.phone}</span>
           </a>
         )}
 
@@ -254,12 +239,12 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
             href={ghost.website}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3 transition active:bg-white/[0.06]"
+            className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3 transition active:bg-zinc-800/50"
           >
-            <svg className="h-4 w-4 flex-shrink-0 text-zinc-500" viewBox="0 0 24 24" fill="currentColor">
+            <svg className="h-4 w-4 flex-shrink-0 text-zinc-600" viewBox="0 0 24 24" fill="currentColor">
               <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z" />
             </svg>
-            <span className="truncate text-sm text-zinc-300">{ghost.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
+            <span className="truncate text-sm text-zinc-400">{ghost.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}</span>
           </a>
         )}
       </div>
@@ -267,12 +252,12 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
       {/* ── Weekly Hours ── */}
       {weeklyHours.length > 0 && (
         <div className="mx-5 mt-5">
-          <h3 className="mb-2 text-sm font-semibold text-zinc-400">Hours</h3>
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
+          <h3 className="mb-2 text-sm font-semibold text-zinc-500">Hours</h3>
+          <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 px-4 py-3">
             {weeklyHours.map((h) => (
               <div key={h.day} className="flex justify-between py-1 text-sm">
-                <span className="text-zinc-500">{h.day}</span>
-                <span className={h.hours === "Closed" ? "text-red-400" : "text-zinc-300"}>
+                <span className="text-zinc-600">{h.day}</span>
+                <span className={h.hours === "Closed" ? "text-red-400/60" : "text-zinc-400"}>
                   {h.hours}
                 </span>
               </div>
@@ -285,14 +270,15 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
       <div className="mx-5 mt-6">
         <Link
           href={`/ghost/${ghost.place_id}/claim`}
-          className="flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[12px] font-medium text-zinc-400 transition hover:bg-white/[0.08]"
+          className="flex items-center justify-center rounded-full py-3.5 text-center text-sm font-bold text-white transition active:scale-[0.98]"
+          style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)" }}
         >
-          Own this business? <span className="font-semibold text-white">Get discovered free →</span>
+          Own this business? Get discovered free →
         </Link>
       </div>
 
       {/* ── Powered by Google ── */}
-      <p className="mt-4 text-center text-xs text-zinc-600">
+      <p className="mt-4 text-center text-[11px] text-zinc-700">
         Info from Google Places · Not verified by owner
       </p>
     </div>
