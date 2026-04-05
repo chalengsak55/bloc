@@ -24,6 +24,7 @@ type Seller = {
   card_mode?: "slideshow" | "text" | "agent";
   card_text?: string;
   slideshow_urls?: string[];
+  card_video?: string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -83,6 +84,7 @@ const DEMO_SELLERS: Seller[] = [
     avatar_url: "https://lh3.googleusercontent.com/places/ANXAkqG6SaBBO6Y7k6h36b4e738EqDx6Sm08a91Y7zbQpd8BXwDTrNR8A1ZJb-hxbqqwm3Nhib3qJjsDuD1hbmACrmTn9O0KdAu_yRw=s4800-w800-h800",
     is_ghost: false,
     card_mode: "agent",
+    card_video: "https://assets.mixkit.co/videos/23695/23695-720.mp4",
   },
 ];
 
@@ -718,8 +720,17 @@ export function NearbyGrid() {
                           }`}
                           style={{ aspectRatio: "3/4" }}
                         >
-                          {/* Full card photo background */}
-                          {s.slideshow_urls && s.slideshow_urls.length > 1 ? (
+                          {/* Full card background: video > slideshow > photo > gradient */}
+                          {s.card_video ? (
+                            <video
+                              src={s.card_video}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              className="absolute inset-0 h-full w-full object-cover"
+                            />
+                          ) : s.slideshow_urls && s.slideshow_urls.length > 1 ? (
                             <SlideshowBg urls={s.slideshow_urls} />
                           ) : s.avatar_url ? (
                             <img
@@ -742,10 +753,10 @@ export function NearbyGrid() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
                           {/* Card mode badge — top left */}
-                          {s.card_mode && s.card_mode !== "text" && (
+                          {(s.card_mode && s.card_mode !== "text") && (
                             <div className="absolute left-2 top-2">
                               <span className="rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-medium text-zinc-300 backdrop-blur-sm">
-                                {s.card_mode === "slideshow" ? "slideshow" : s.card_mode === "agent" ? "✦ AI" : ""}
+                                {s.card_video ? "▶ VIDEO" : s.card_mode === "slideshow" ? "slideshow" : s.card_mode === "agent" ? "✦ AI" : ""}
                               </span>
                             </div>
                           )}
