@@ -753,13 +753,6 @@ export function NearbyGrid() {
                           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
                           {/* Card mode badge — top left */}
-                          {(s.card_mode && s.card_mode !== "text") && (
-                            <div className="absolute left-2 top-2">
-                              <span className="rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-medium text-zinc-300 backdrop-blur-sm">
-                                {s.card_video ? "▶ VIDEO" : s.card_mode === "slideshow" ? "slideshow" : s.card_mode === "agent" ? "✦ AI" : ""}
-                              </span>
-                            </div>
-                          )}
 
                           {/* Live dot — top right */}
                           {s.is_online && !s.is_ghost && (
