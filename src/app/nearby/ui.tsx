@@ -576,9 +576,20 @@ export function NearbyGrid() {
         >
           <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
             <span className="text-sm">⚡</span>
-            <p className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">
-              {DEMO_TICKER[tickerIndex % DEMO_TICKER.length]}
-            </p>
+            <div className="relative min-w-0 flex-1 overflow-hidden" style={{ height: 16 }}>
+              {DEMO_TICKER.map((msg, i) => (
+                <p
+                  key={i}
+                  className="absolute inset-x-0 truncate text-[11px] text-zinc-400 transition-all duration-500"
+                  style={{
+                    opacity: tickerIndex % DEMO_TICKER.length === i ? 1 : 0,
+                    transform: tickerIndex % DEMO_TICKER.length === i ? "translateY(0)" : "translateY(8px)",
+                  }}
+                >
+                  {msg}
+                </p>
+              ))}
+            </div>
             <span className="flex-shrink-0 text-[10px] text-zinc-600">{DEMO_TICKER.length} active</span>
           </div>
         </div>
@@ -706,10 +717,11 @@ export function NearbyGrid() {
 
                           {/* Text scroll content for text mode */}
                           {s.card_mode === "text" && s.card_text && (
-                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-2.5 text-center">
-                              <p className="text-[11px] font-semibold leading-relaxed text-white/90">
-                                {s.card_text}
-                              </p>
+                            <div className="absolute inset-x-0 top-1/3 overflow-hidden px-1">
+                              <div className="animate-marquee whitespace-nowrap">
+                                <span className="inline-block px-2 text-[13px] font-bold text-white/90">✂️ {s.card_text}</span>
+                                <span className="inline-block px-2 text-[13px] font-bold text-white/90">✂️ {s.card_text}</span>
+                              </div>
                             </div>
                           )}
 

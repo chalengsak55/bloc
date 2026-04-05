@@ -52,4 +52,13 @@ body {
   to   { transform: translateY(0); }
 }
 
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 8s linear infinite;
+}
+
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
