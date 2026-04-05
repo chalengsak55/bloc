@@ -20,7 +20,7 @@ type Seller = {
   avatar_url?: string | null;
   is_ghost?: boolean;
   place_id?: string;
-  opening_hours?: string | null;
+  opening_hours?: unknown;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -61,29 +61,66 @@ function isInBayArea(lat: number, lng: number): boolean {
   return distanceKm(lat, lng, SF_DEFAULT.lat, SF_DEFAULT.lng) <= BAY_AREA_RADIUS_KM;
 }
 
+type HoursPeriod = { open: { day: number; hour: number; minute: number }; close: { day: number; hour: number; minute: number } };
+
+function fmtTime(hour: number, minute: number): string {
+  const ampm = hour >= 12 ? "pm" : "am";
+  const h = hour % 12 || 12;
+  return minute === 0 ? `${h}${ampm}` : `${h}:${minute.toString().padStart(2, "0")}${ampm}`;
+}
+
 function getStatusText(s: Seller): { text: string; color: string } {
   if (!s.is_ghost) {
     if (s.is_online) return { text: "Open now · agent ready", color: "#34d399" };
     return { text: "Closed", color: "#71717a" };
   }
-  // Ghost: try to parse opening_hours for next open time
+  // Ghost: check opening_hours for open/closed status
   if (s.opening_hours) {
     try {
-      const hours = JSON.parse(s.opening_hours);
-      if (Array.isArray(hours) && hours.length > 0) {
+      const periods: HoursPeriod[] = typeof s.opening_hours === "string"
+        ? JSON.parse(s.opening_hours)
+        : s.opening_hours;
+      if (Array.isArray(periods) && periods.length > 0) {
         const now = new Date();
-        const dayIndex = now.getDay(); // 0=Sun
-        const todayHours = hours.find((h: string) => {
-          const dayMap: Record<string, number> = { Sunday: 0, Monday: 1, Tuesday: 2, Wednesday: 3, Thursday: 4, Friday: 5, Saturday: 6 };
-          return Object.entries(dayMap).some(([name, idx]) => idx === dayIndex && h.startsWith(name));
-        });
-        if (todayHours && !todayHours.includes("Closed")) {
-          return { text: "Claim this →", color: "#7c5ce8" };
+        const day = now.getDay(); // 0=Sun
+        const mins = now.getHours() * 60 + now.getMinutes();
+
+        // Check if currently open
+        for (const p of periods) {
+          if (p.open.day === day) {
+            const openMins = p.open.hour * 60 + p.open.minute;
+            const closeMins = p.close.hour * 60 + p.close.minute;
+            if (mins >= openMins && mins < closeMins) {
+              return { text: `Open · closes ${fmtTime(p.close.hour, p.close.minute)}`, color: "#34d399" };
+            }
+          }
         }
+
+        // Find next opening time
+        // Check later today first, then upcoming days
+        for (let offset = 0; offset < 7; offset++) {
+          const checkDay = (day + offset) % 7;
+          for (const p of periods) {
+            if (p.open.day === checkDay) {
+              const openMins = p.open.hour * 60 + p.open.minute;
+              if (offset === 0 && openMins > mins) {
+                return { text: `Closed · opens ${fmtTime(p.open.hour, p.open.minute)}`, color: "#71717a" };
+              }
+              if (offset === 1) {
+                return { text: `Closed · opens tomorrow ${fmtTime(p.open.hour, p.open.minute)}`, color: "#71717a" };
+              }
+              if (offset > 1) {
+                const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+                return { text: `Closed · opens ${dayNames[checkDay]}`, color: "#71717a" };
+              }
+            }
+          }
+        }
+        return { text: "Closed", color: "#71717a" };
       }
     } catch { /* ignore parse errors */ }
   }
-  return { text: "Claim this →", color: "#7c5ce8" };
+  return { text: "Open", color: "#71717a" };
 }
 
 function fmtDist(km: number): string {
@@ -310,7 +347,7 @@ export function NearbyGrid() {
           avatar_url: g.photo_url as string | null,
           is_ghost: true,
           place_id: g.place_id as string,
-          opening_hours: g.opening_hours as string | null,
+          opening_hours: g.opening_hours,
         }));
 
         setSellers([...(realSellers ?? []) as Seller[], ...ghostSellers]);
