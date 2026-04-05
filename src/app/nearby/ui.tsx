@@ -37,14 +37,6 @@ const DEMO_TICKER = [
   "Need a barber open late — walk-ins welcome",
 ];
 
-const FOMO_DEMANDS = [
-  { label: "2 DJs", color: "#7c5ce8" },
-  { label: "4 cleaners", color: "#4d9ef5" },
-  { label: "fast food", emoji: "🍔", color: "#f59e0b" },
-  { label: "3 movers", color: "#00d4c8" },
-  { label: "5 barbers", color: "#7c5ce8" },
-];
-
 
 
 // ─── Haversine distance (km) ──────────────────────────────────────────────────
@@ -669,26 +661,6 @@ export function NearbyGrid() {
           )}
         </div>
 
-        {/* ── FOMO bar ── */}
-        <div className="mx-auto w-full max-w-[600px] px-4 pb-4 pt-2">
-          <div className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-3">
-            <p className="pb-2.5 text-xs">
-              <span className="font-semibold text-white">Tonight in Daly City</span>
-              <span className="ml-1 text-zinc-500">· people are looking for</span>
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {FOMO_DEMANDS.map((d) => (
-                <span
-                  key={d.label}
-                  className="rounded-full px-3 py-1 text-[11px] font-medium text-white"
-                  style={{ background: `${d.color}25`, border: `1px solid ${d.color}40` }}
-                >
-                  {d.emoji ? `${d.emoji} ` : ""}{d.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
       </div>
 
       <TabBar active="Nearby" />
