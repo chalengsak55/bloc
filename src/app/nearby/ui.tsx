@@ -542,6 +542,26 @@ export function NearbyGrid() {
           </div>
         )}
 
+        {/* ── Broadcasts unanswered FOMO ── */}
+        <div className="mx-auto w-full max-w-[600px] px-4 pb-2">
+          <div className="flex items-center justify-between rounded-xl border border-yellow-500/20 bg-yellow-500/[0.06] px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">⚡</span>
+              <span className="text-[11px] text-zinc-300">
+                <span className="font-semibold text-yellow-400">3 broadcasts unanswered nearby</span>
+                <span className="ml-1 text-zinc-500">— claimed agents got them all</span>
+              </span>
+            </div>
+            <Link
+              href="/seller/onboarding"
+              className="flex-shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-white"
+              style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}
+            >
+              Claim →
+            </Link>
+          </div>
+        </div>
+
         {/* ── Filter pills ── */}
         <div className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0d0d12]/90 backdrop-blur-xl">
           <div className="mx-auto max-w-[600px] overflow-x-auto px-4 py-3 scrollbar-none">
