@@ -236,25 +236,38 @@ export function NearbyGrid() {
     );
   }
 
-// Fetch all sellers + ghost businesses (filtering is client-side)
+// Fetch sellers + ghost businesses near effective position
   useEffect(() => {
     let canceled = false;
     async function load() {
       setLoading(true);
       try {
+        // Bounding box ~15km around position (generous to catch all within 10km radius)
+        const pos = effectivePos;
+        const latDelta = 0.135; // ~15km in latitude
+        const lngDelta = 0.17;  // ~15km in longitude at SF latitude
+
         // Fetch real sellers
         const { data: realSellers } = await supabase
           .from("profiles")
           .select("id,display_name,category,location_text,is_online,lat,lng,avatar_url")
           .eq("role", "seller")
-          .limit(50);
+          .gte("lat", pos.lat - latDelta)
+          .lte("lat", pos.lat + latDelta)
+          .gte("lng", pos.lng - lngDelta)
+          .lte("lng", pos.lng + lngDelta)
+          .limit(100);
 
-        // Fetch ghost businesses (unclaimed)
+        // Fetch ghost businesses (unclaimed) within bounding box
         const { data: ghosts } = await supabase
           .from("ghost_businesses")
           .select("id,place_id,name,category,address,lat,lng,photo_url,opening_hours,timezone")
           .eq("claimed", false)
-          .limit(200);
+          .gte("lat", pos.lat - latDelta)
+          .lte("lat", pos.lat + latDelta)
+          .gte("lng", pos.lng - lngDelta)
+          .lte("lng", pos.lng + lngDelta)
+          .limit(500);
 
         if (canceled) return;
 
@@ -279,7 +292,7 @@ export function NearbyGrid() {
     }
     load();
     return () => { canceled = true; };
-  }, [supabase]);
+  }, [supabase, effectivePos]);
 
   // Fetch recent requests for ticker
   useEffect(() => {
