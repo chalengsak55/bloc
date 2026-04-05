@@ -543,24 +543,14 @@ export function NearbyGrid() {
           </div>
         </div>
 
-        {/* ── Broadcasts unanswered FOMO ── */}
+        {/* ── Seller CTA ── */}
         <div className="mx-auto w-full max-w-[600px] px-4 pb-2">
-          <div className="flex items-center justify-between rounded-xl border border-yellow-500/20 bg-yellow-500/[0.06] px-3 py-2.5">
-            <div className="flex items-center gap-2">
-              <span className="text-sm">⚡</span>
-              <span className="text-[11px] text-zinc-300">
-                <span className="font-semibold text-yellow-400">3 broadcasts nearby went unanswered</span>
-                <span className="ml-1 text-zinc-500">— sellers with agents got them all</span>
-              </span>
-            </div>
-            <Link
-              href="/seller/onboarding"
-              className="flex-shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}
-            >
-              Join free →
-            </Link>
-          </div>
+          <Link
+            href="/seller/onboarding"
+            className="flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[12px] font-medium text-zinc-400 transition hover:bg-white/[0.08]"
+          >
+            Own a business nearby? <span className="font-semibold text-white">Get discovered free →</span>
+          </Link>
         </div>
 
         {/* ── Filter pills ── */}
