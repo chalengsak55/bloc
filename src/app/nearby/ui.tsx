@@ -549,8 +549,8 @@ export function NearbyGrid() {
             <div className="flex items-center gap-2">
               <span className="text-sm">⚡</span>
               <span className="text-[11px] text-zinc-300">
-                <span className="font-semibold text-yellow-400">3 broadcasts unanswered nearby</span>
-                <span className="ml-1 text-zinc-500">— claimed agents got them all</span>
+                <span className="font-semibold text-yellow-400">3 broadcasts nearby went unanswered</span>
+                <span className="ml-1 text-zinc-500">— sellers with agents got them all</span>
               </span>
             </div>
             <Link
@@ -558,7 +558,7 @@ export function NearbyGrid() {
               className="flex-shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold text-white"
               style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5)" }}
             >
-              Claim →
+              Join free →
             </Link>
           </div>
         </div>
