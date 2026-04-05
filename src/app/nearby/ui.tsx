@@ -420,14 +420,18 @@ export function NearbyGrid() {
     return fmtDist(distanceKm(effectivePos.lat, effectivePos.lng, s.lat, s.lng));
   }
 
+  // Online seller count
+  const onlineCount = useMemo(() => sorted.filter((s) => s.is_online && !s.is_ghost).length, [sorted]);
+
   return (
     <>
-      <div className="flex min-h-dvh flex-col pb-24">
-        {/* Page title */}
-        <div className="mx-auto max-w-[600px] px-4 pb-2 pt-6">
-          <div className="flex items-baseline justify-between">
-            <h1
-              className="text-6xl tracking-tight"
+      <div className="flex min-h-dvh flex-col pb-24" style={{ background: "#0d0d12" }}>
+
+        {/* ── Top bar: Bloc. logo + live pill ── */}
+        <div className="mx-auto w-full max-w-[600px] px-4 pt-4">
+          <div className="flex items-center justify-between">
+            <span
+              className="text-lg font-bold tracking-tight"
               style={{
                 fontFamily: "var(--font-instrument-serif), Georgia, serif",
                 background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
@@ -436,191 +440,94 @@ export function NearbyGrid() {
                 backgroundClip: "text",
               }}
             >
-              Nearby.
-            </h1>
-            <span className="text-xs text-zinc-500">
-              {`Showing ${showingCount} of ${totalCount} agents within ${DEFAULT_RADIUS_KM}km`}
+              Bloc.
+            </span>
+            <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
+              <span className="relative inline-flex h-1.5 w-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </span>
+              live
             </span>
           </div>
         </div>
 
-        {/* Header */}
-        <div
-          className="sticky top-0 z-40 border-b border-white/[0.06] bg-black/70 backdrop-blur-xl"
-        >
-          {/* Filter pills */}
-          <div className="mx-auto max-w-[600px] overflow-x-auto px-4 pb-3 scrollbar-none">
-          <div className="flex gap-2">
-            {filters.map((f) => (
-              <button
-                key={f.value}
-                onClick={() => setActiveFilter(f.value)}
-                className={`flex-shrink-0 rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                  activeFilter === f.value
-                    ? "border-transparent text-white"
-                    : "border-white/10 bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08]"
-                }`}
-                style={
-                  activeFilter === f.value
-                    ? { background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)" }
-                    : undefined
-                }
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          </div>
-          {/* Search bar */}
-          <div className="mx-auto max-w-[600px] px-4 pb-3">
-            <div className="flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3 py-2 focus-within:border-[#7c5ce8]/60">
-              <svg className="h-4 w-4 flex-shrink-0 text-zinc-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
-              </svg>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by name or category…"
-                className="w-full bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
-              />
-              {searchQuery && (
-                <button onClick={() => setSearchQuery("")} className="flex-shrink-0 text-zinc-500 hover:text-zinc-300">
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path d="M18 6 6 18M6 6l12 12" />
-                  </svg>
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Location filter */}
-          <div className="mx-auto max-w-[600px] px-4 pb-3">
-            {!locationOpen && !locationLabel && (
-              <div className="flex items-center gap-2">
-                <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  SF Bay Area
-                </span>
-                {isUsingDefault && (
-                  <button
-                    onClick={requestUserLocation}
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-zinc-500 transition hover:bg-white/[0.08]"
-                  >
-                    Near me
-                  </button>
-                )}
-                {outsideBayArea && (
-                  <span className="text-[10px] text-zinc-600">Coming to your city soon</span>
-                )}
-              </div>
-            )}
-
-            {locationLabel && !locationOpen && (
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium text-white"
-                  style={{ borderColor: "#7c5ce8", background: "rgba(124,92,232,0.15)" }}
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {locationLabel}
-                  <button onClick={clearLocation} className="ml-0.5 text-zinc-400 hover:text-white">
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </span>
-              </div>
-            )}
-
-            {locationOpen && (
-              <div className="relative">
-                <div className="flex items-center gap-2 rounded-xl border border-[#7c5ce8]/60 bg-white/10 px-3 py-2">
-                  <svg className="h-4 w-4 flex-shrink-0 text-[#7c5ce8]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <input
-                    type="text"
-                    autoFocus
-                    value={locationQuery}
-                    onChange={(e) => handleLocationInput(e.target.value)}
-                    placeholder="City, neighborhood, or address…"
-                    className="w-full bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
-                  />
-                  <button
-                    onClick={() => { setLocationOpen(false); setLocationQuery(""); setLocationResults([]); }}
-                    className="flex-shrink-0 text-zinc-500 hover:text-zinc-300"
-                  >
-                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                      <path d="M18 6 6 18M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Results dropdown */}
-                {(locationResults.length > 0 || locationSearching) && (
-                  <div className="absolute inset-x-0 top-full z-50 mt-1 rounded-xl border border-white/10 bg-[#1a1a24] shadow-xl">
-                    {locationSearching && (
-                      <div className="flex items-center gap-2 px-4 py-3 text-xs text-zinc-500">
-                        <span className="h-3 w-3 animate-spin rounded-full border-2 border-zinc-700 border-t-[#7c5ce8]" />
-                        Searching…
-                      </div>
-                    )}
-                    {locationResults.map((r, i) => {
-                      const short = r.display_name.split(",").slice(0, 3).join(",").trim();
-                      return (
-                        <button
-                          key={i}
-                          onClick={() => selectLocation(r)}
-                          className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-zinc-300 transition hover:bg-white/[0.06]"
-                        >
-                          <svg className="h-3.5 w-3.5 flex-shrink-0 text-zinc-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <span className="truncate">{short}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+        {/* ── Page title + counts ── */}
+        <div className="mx-auto w-full max-w-[600px] px-4 pb-1 pt-2">
+          <h1
+            className="text-5xl tracking-tight"
+            style={{
+              fontFamily: "var(--font-instrument-serif), Georgia, serif",
+              background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Nearby
+          </h1>
+          <div className="flex items-center gap-3 pt-0.5">
+            <span className="text-xs text-zinc-500">{totalCount} agents found</span>
+            {onlineCount > 0 && (
+              <span className="flex items-center gap-1 text-xs text-emerald-400">
+                <span className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                {onlineCount} online now
+              </span>
             )}
           </div>
         </div>
 
-        {/* Live ticker */}
-        {ticker.length > 0 && (
-          <div
-            className="w-full overflow-hidden border-b border-white/[0.06] bg-black/40 py-1.5 select-none"
-            onMouseEnter={() => setTickerPaused(true)}
-            onMouseLeave={() => setTickerPaused(false)}
-            onTouchStart={() => setTickerPaused(true)}
-            onTouchEnd={() => setTickerPaused(false)}
-          >
-            <div className="mx-auto max-w-[600px] px-4">
-              <p className="min-w-0 truncate text-[10px] text-zinc-400">
-                {ticker[tickerIndex % ticker.length]?.sentence}
-              </p>
+        {/* ── Location bar ── */}
+        <div className="mx-auto w-full max-w-[600px] px-4 py-3">
+          <div className="flex items-center justify-between rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-sm">📍</span>
+              <span className="text-xs text-zinc-300">
+                Daly City, CA
+                <span className="ml-1 text-zinc-500">·</span>
+                <span className="ml-1 font-medium text-white">showing within {DEFAULT_RADIUS_KM}km</span>
+              </span>
+            </div>
+            <span className="rounded-md border border-white/10 bg-white/[0.06] px-2 py-0.5 text-[10px] text-zinc-400">
+              {DEFAULT_RADIUS_KM} km
+            </span>
+          </div>
+        </div>
+
+        {/* ── Filter pills ── */}
+        <div className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0d0d12]/90 backdrop-blur-xl">
+          <div className="mx-auto max-w-[600px] overflow-x-auto px-4 py-3 scrollbar-none">
+            <div className="flex gap-2">
+              {filters.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setActiveFilter(f.value)}
+                  className={`flex-shrink-0 rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
+                    activeFilter === f.value
+                      ? "border-transparent text-white"
+                      : "border-white/10 bg-white/[0.04] text-zinc-400 hover:bg-white/[0.08]"
+                  }`}
+                  style={
+                    activeFilter === f.value
+                      ? { background: "linear-gradient(135deg,#7c5ce8,#4d9ef5,#00d4c8)" }
+                      : undefined
+                  }
+                >
+                  {f.label}
+                </button>
+              ))}
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Grid */}
+        {/* ── Grid ── */}
         <div className="mx-auto w-full max-w-[600px] flex-1">
           {loading ? (
-            <div className="grid grid-cols-3">
+            <div className="grid grid-cols-3 gap-px p-4">
               {Array.from({ length: 9 }).map((_, i) => (
                 <div
                   key={i}
-                  className="aspect-square animate-pulse border border-white/[0.04] bg-white/[0.03]"
+                  className="aspect-square animate-pulse rounded-xl bg-white/[0.04]"
                 />
               ))}
             </div>
@@ -635,8 +542,19 @@ export function NearbyGrid() {
             <>
               {groups.map((group) => (
                 <div key={group.label}>
-                  <div className="px-4 pb-2 pt-4 text-xs font-medium text-zinc-500">
-                    {group.label}
+                  <div className="flex items-center justify-between px-4 pb-2 pt-5">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block h-2 w-2 rounded-full ${
+                        group.label === "Open Now" ? "bg-emerald-400" :
+                        group.label === "Closed" ? "bg-zinc-500" : "bg-zinc-600"
+                      }`} />
+                      <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                        {group.label}
+                      </span>
+                    </div>
+                    <span className="text-[11px] text-zinc-600">
+                      {group.sellers.length} {group.label === "Unclaimed Businesses" ? "businesses" : "agents"}
+                    </span>
                   </div>
                   <div className="grid grid-cols-3">
                     {group.sellers.map((s) => (
@@ -645,16 +563,26 @@ export function NearbyGrid() {
                   </div>
                 </div>
               ))}
-              {hasMore && (
-                <div className="flex justify-center py-6">
-                  <button
-                    onClick={() => setDisplayCount((c) => c + PAGE_SIZE)}
-                    className="rounded-full border border-white/10 bg-white/[0.04] px-6 py-2 text-xs font-medium text-zinc-400 transition hover:bg-white/[0.08]"
-                  >
-                    Load more
-                  </button>
-                </div>
-              )}
+
+              {/* Load more bar */}
+              <div className="mx-4 mt-4 rounded-xl bg-white/[0.04] py-3 text-center">
+                <span className="text-xs text-zinc-500">
+                  Showing {showingCount} of{" "}
+                  <span className="font-semibold text-white">{totalCount} agents</span>
+                  {" "}within {DEFAULT_RADIUS_KM}km
+                </span>
+                {hasMore && (
+                  <>
+                    <span className="mx-2 text-zinc-700">·</span>
+                    <button
+                      onClick={() => setDisplayCount((c) => c + PAGE_SIZE)}
+                      className="text-xs font-medium text-zinc-400 underline decoration-zinc-700 underline-offset-2 transition hover:text-white"
+                    >
+                      Load more →
+                    </button>
+                  </>
+                )}
+              </div>
             </>
           )}
         </div>
