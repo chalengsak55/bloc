@@ -371,14 +371,22 @@ export function NearbyGrid() {
     return result;
   }, [sellers, activeFilter, searchQuery]);
 
-  // Filter by radius and sort by distance
+  // Filter by radius, sort by priority (claimed+open → claimed+closed → unclaimed) then distance
   const sorted = useMemo(() => {
+    function priorityOf(s: Seller): number {
+      if (!s.is_ghost && s.is_online) return 0;  // claimed + open
+      if (!s.is_ghost) return 1;                  // claimed + closed
+      return 2;                                    // unclaimed ghost
+    }
     return [...filtered]
       .filter((s) => {
         if (s.lat == null || s.lng == null) return false;
         return distanceKm(effectivePos.lat, effectivePos.lng, s.lat, s.lng) <= DEFAULT_RADIUS_KM;
       })
       .sort((a, b) => {
+        const pa = priorityOf(a);
+        const pb = priorityOf(b);
+        if (pa !== pb) return pa - pb;
         const da = distanceKm(effectivePos.lat, effectivePos.lng, a.lat!, a.lng!);
         const db = distanceKm(effectivePos.lat, effectivePos.lng, b.lat!, b.lng!);
         return da - db;
