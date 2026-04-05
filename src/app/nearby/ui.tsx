@@ -363,12 +363,12 @@ export function NearbyGrid() {
   const outsideBayArea = userPos ? !isInBayArea(userPos.lat, userPos.lng) : false;
 
   function handleMessage(seller: Seller) {
-    if (seller.place_id) {
-      // Ghost businesses and demo sellers → ghost storefront
+    if (seller.id.startsWith("demo:") && seller.place_id) {
+      // Demo claimed sellers → ghost storefront with claimed view
+      router.push(`/ghost/${seller.place_id}?claimed=true`);
+    } else if (seller.is_ghost && seller.place_id) {
+      // Unclaimed ghost businesses → ghost storefront
       router.push(`/ghost/${seller.place_id}`);
-    } else if (seller.id.startsWith("demo:")) {
-      // Demo sellers without place_id → nearby (fallback)
-      return;
     } else {
       // Real claimed sellers → seller storefront
       router.push(`/seller/${seller.id}`);

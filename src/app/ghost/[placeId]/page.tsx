@@ -24,10 +24,13 @@ export async function generateMetadata({
 
 export default async function GhostPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ placeId: string }>;
+  searchParams: Promise<{ claimed?: string }>;
 }) {
   const { placeId } = await params;
+  const { claimed } = await searchParams;
 
   const supabase = createSupabaseServiceClient();
   const { data: ghost } = await supabase
@@ -39,5 +42,5 @@ export default async function GhostPage({
 
   if (!ghost) notFound();
 
-  return <GhostStorefront ghost={ghost} />;
+  return <GhostStorefront ghost={ghost} isClaimed={claimed === "true"} />;
 }
