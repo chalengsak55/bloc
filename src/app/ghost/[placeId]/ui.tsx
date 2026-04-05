@@ -281,8 +281,18 @@ export function GhostStorefront({ ghost }: { ghost: GhostBusiness }) {
         </div>
       )}
 
+      {/* ── Own this business CTA ── */}
+      <div className="mx-5 mt-6">
+        <Link
+          href={`/ghost/${ghost.place_id}/claim`}
+          className="flex items-center justify-center gap-1.5 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2.5 text-[12px] font-medium text-zinc-400 transition hover:bg-white/[0.08]"
+        >
+          Own this business? <span className="font-semibold text-white">Get discovered free →</span>
+        </Link>
+      </div>
+
       {/* ── Powered by Google ── */}
-      <p className="mt-6 text-center text-xs text-zinc-600">
+      <p className="mt-4 text-center text-xs text-zinc-600">
         Info from Google Places · Not verified by owner
       </p>
     </div>

@@ -45,6 +45,7 @@ const DEMO_TICKER = [
 const DEMO_SELLERS: Seller[] = [
   {
     id: "demo:mumu-hot-pot",
+    place_id: "ChIJsY7b--IzjoARYxrox5OtNSk",
     display_name: "Mumu Hot Pot",
     category: "food",
     location_text: "Daly City, CA",
@@ -62,6 +63,7 @@ const DEMO_SELLERS: Seller[] = [
   },
   {
     id: "demo:bay-cuts",
+    place_id: "ChIJcXVKPv59j4ARdI92D1feakY",
     display_name: "Bay Cuts Barbershop",
     category: "barber",
     location_text: "Daly City, CA",
@@ -75,6 +77,7 @@ const DEMO_SELLERS: Seller[] = [
   },
   {
     id: "demo:aleco-electric",
+    place_id: "ChIJb_qTsQx8j4ARfZg9waOROwM",
     display_name: "Aleco Electric",
     category: "home",
     location_text: "Daly City, CA",
@@ -360,9 +363,14 @@ export function NearbyGrid() {
   const outsideBayArea = userPos ? !isInBayArea(userPos.lat, userPos.lng) : false;
 
   function handleMessage(seller: Seller) {
-    if (seller.is_ghost && seller.place_id) {
+    if (seller.place_id) {
+      // Ghost businesses and demo sellers → ghost storefront
       router.push(`/ghost/${seller.place_id}`);
+    } else if (seller.id.startsWith("demo:")) {
+      // Demo sellers without place_id → nearby (fallback)
+      return;
     } else {
+      // Real claimed sellers → seller storefront
       router.push(`/seller/${seller.id}`);
     }
   }
