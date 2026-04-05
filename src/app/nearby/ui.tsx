@@ -21,6 +21,8 @@ type Seller = {
   is_ghost?: boolean;
   place_id?: string;
   opening_hours?: unknown;
+  card_mode?: "slideshow" | "text" | "agent";
+  card_text?: string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -38,7 +40,45 @@ const DEMO_TICKER = [
   "Need a barber open late — walk-ins welcome",
 ];
 
-
+const DEMO_SELLERS: Seller[] = [
+  {
+    id: "demo:mumu-hot-pot",
+    display_name: "Mumu Hot Pot",
+    category: "food",
+    location_text: "Daly City, CA",
+    is_online: true,
+    lat: 37.6879,
+    lng: -122.4702,
+    avatar_url: "https://lh3.googleusercontent.com/places/ANXAkqG2kMTUqVIGbBScmPfaNsqRseGxMElSGREVl_0kCfClPXYHAL9hTJIBgpSvnHzxjVhH-v3wvEaVAOPqoswQgXb9u9fDmV0cLik=s1600-w400",
+    is_ghost: false,
+    card_mode: "slideshow",
+  },
+  {
+    id: "demo:bay-cuts",
+    display_name: "Bay Cuts Barbershop",
+    category: "barber",
+    location_text: "Daly City, CA",
+    is_online: true,
+    lat: 37.6850,
+    lng: -122.4680,
+    avatar_url: null,
+    is_ghost: false,
+    card_mode: "text",
+    card_text: "Walk-ins welcome · Best fade in SF Bay · No wait today",
+  },
+  {
+    id: "demo:aleco-electric",
+    display_name: "Aleco Electric",
+    category: "home",
+    location_text: "Daly City, CA",
+    is_online: true,
+    lat: 37.6900,
+    lng: -122.4720,
+    avatar_url: null,
+    is_ghost: false,
+    card_mode: "agent",
+  },
+];
 
 // ─── Haversine distance (km) ──────────────────────────────────────────────────
 
@@ -350,7 +390,7 @@ export function NearbyGrid() {
           opening_hours: g.opening_hours,
         }));
 
-        setSellers([...(realSellers ?? []) as Seller[], ...ghostSellers]);
+        setSellers([...DEMO_SELLERS, ...(realSellers ?? []) as Seller[], ...ghostSellers]);
       } finally {
         if (!canceled) setLoading(false);
       }
@@ -611,12 +651,17 @@ export function NearbyGrid() {
                       for (let i = 0; i < s.id.length; i++) hue = (hue * 31 + s.id.charCodeAt(i)) % 360;
 
                       const status = getStatusText(s);
+                      const isClaimed = !s.is_ghost;
 
                       return (
                         <button
                           key={s.id}
                           onClick={() => handleMessage(s)}
-                          className="relative overflow-hidden rounded-2xl border border-white/[0.08] transition-opacity active:opacity-80"
+                          className={`relative overflow-hidden rounded-2xl transition-opacity active:opacity-80 ${
+                            isClaimed
+                              ? "border-2 border-yellow-500/40"
+                              : "border border-white/[0.08]"
+                          }`}
                           style={{ aspectRatio: "3/4" }}
                         >
                           {/* Full card photo background */}
@@ -640,6 +685,15 @@ export function NearbyGrid() {
                           {/* Dark gradient overlay */}
                           <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
 
+                          {/* Card mode badge — top left */}
+                          {s.card_mode && (
+                            <div className="absolute left-2 top-2">
+                              <span className="rounded-full bg-black/60 px-2 py-0.5 text-[9px] font-medium text-zinc-300 backdrop-blur-sm">
+                                {s.card_mode === "slideshow" ? "slideshow" : s.card_mode === "text" ? "text scroll" : s.card_mode === "agent" ? "✦ AI" : ""}
+                              </span>
+                            </div>
+                          )}
+
                           {/* Live dot — top right */}
                           {s.is_online && !s.is_ghost && (
                             <div className="absolute right-2.5 top-2.5">
@@ -647,6 +701,15 @@ export function NearbyGrid() {
                                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
                                 <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
                               </span>
+                            </div>
+                          )}
+
+                          {/* Text scroll content for text mode */}
+                          {s.card_mode === "text" && s.card_text && (
+                            <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 px-2.5 text-center">
+                              <p className="text-[11px] font-semibold leading-relaxed text-white/90">
+                                {s.card_text}
+                              </p>
                             </div>
                           )}
 
