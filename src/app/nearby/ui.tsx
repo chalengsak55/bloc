@@ -32,6 +32,8 @@ type TickerItem = {
 
 const DEFAULT_RADIUS_KM = 10;
 const PAGE_SIZE = 9;
+const SF_DEFAULT = { lat: 37.6879, lng: -122.4702 };
+const BAY_AREA_RADIUS_KM = 80;
 
 
 
@@ -50,6 +52,10 @@ function distanceKm(
       Math.cos((lat2 * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isInBayArea(lat: number, lng: number): boolean {
+  return distanceKm(lat, lng, SF_DEFAULT.lat, SF_DEFAULT.lng) <= BAY_AREA_RADIUS_KM;
 }
 
 function fmtDist(km: number): string {
@@ -208,8 +214,10 @@ export function NearbyGrid() {
     setLocationOpen(false);
   }
 
-  // Effective position: custom location > GPS
-  const effectivePos = customPos ?? userPos;
+  // Effective position: custom location > GPS > SF default
+  const effectivePos = customPos ?? userPos ?? SF_DEFAULT;
+  const isUsingDefault = !customPos && !userPos;
+  const outsideBayArea = userPos ? !isInBayArea(userPos.lat, userPos.lng) : false;
 
   function handleMessage(seller: Seller) {
     if (seller.is_ghost && seller.place_id) {
@@ -363,9 +371,8 @@ export function NearbyGrid() {
     return result;
   }, [sellers, activeFilter, searchQuery]);
 
-  // Filter by radius and sort by distance if we have a position (GPS or custom location)
+  // Filter by radius and sort by distance
   const sorted = useMemo(() => {
-    if (!effectivePos) return filtered;
     return [...filtered]
       .filter((s) => {
         if (s.lat == null || s.lng == null) return false;
@@ -409,7 +416,7 @@ export function NearbyGrid() {
   const hasMore = displayCount < totalCount;
 
   function getDistLabel(s: Seller): string | null {
-    if (!effectivePos || s.lat == null || s.lng == null) return null;
+    if (s.lat == null || s.lng == null) return null;
     return fmtDist(distanceKm(effectivePos.lat, effectivePos.lng, s.lat, s.lng));
   }
 
@@ -432,9 +439,7 @@ export function NearbyGrid() {
               Nearby.
             </h1>
             <span className="text-xs text-zinc-500">
-              {effectivePos
-                ? `Showing ${showingCount} of ${totalCount} agents within ${DEFAULT_RADIUS_KM}km`
-                : `${totalCount} agents`}
+              {`Showing ${showingCount} of ${totalCount} agents within ${DEFAULT_RADIUS_KM}km`}
             </span>
           </div>
         </div>
@@ -492,16 +497,32 @@ export function NearbyGrid() {
           {/* Location filter */}
           <div className="mx-auto max-w-[600px] px-4 pb-3">
             {!locationOpen && !locationLabel && (
-              <button
-                onClick={() => setLocationOpen(true)}
-                className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-zinc-400 transition hover:bg-white/[0.08]"
-              >
-                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Near me
-              </button>
+              <div className="flex items-center gap-2">
+                <span className="flex items-center gap-1.5 text-[11px] text-zinc-500">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  SF Bay Area
+                </span>
+                {isUsingDefault && (
+                  <button
+                    onClick={() => {
+                      if (!navigator.geolocation) return;
+                      navigator.geolocation.getCurrentPosition(
+                        (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+                        () => {},
+                      );
+                    }}
+                    className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-zinc-500 transition hover:bg-white/[0.08]"
+                  >
+                    Near me
+                  </button>
+                )}
+                {outsideBayArea && (
+                  <span className="text-[10px] text-zinc-600">Coming to your city soon</span>
+                )}
+              </div>
             )}
 
             {locationLabel && !locationOpen && (
