@@ -22,12 +22,6 @@ type Seller = {
   place_id?: string;
 };
 
-type TickerItem = {
-  id: string;
-  sentence: string;
-  created_at: string;
-};
-
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const DEFAULT_RADIUS_KM = 10;
@@ -36,14 +30,11 @@ const SF_DEFAULT = { lat: 37.6879, lng: -122.4702 };
 const BAY_AREA_RADIUS_KM = 80;
 
 const DEMO_TICKER = [
-  "5 people looking for a DJ this weekend",
-  "Someone needs an electrician tonight",
+  "5 people looking for a DJ this weekend near Daly City",
+  "Someone needs an electrician tonight before 8pm",
   "2 requests for house cleaning this Saturday",
-  "Looking for a barber near Daly City ASAP",
-  "3 people need a plumber this week",
-  "Someone looking for a photographer for Sunday",
-  "2 requests for moving help this Friday",
-  "Need a mobile car wash in South SF today",
+  "Looking for a private chef for dinner party tonight",
+  "Need a barber open late — walk-ins welcome",
 ];
 
 const FOMO_DEMANDS = [
@@ -174,7 +165,6 @@ export function NearbyGrid() {
   const router = useRouter();
 
   const [sellers, setSellers] = useState<Seller[]>([]);
-  const [ticker, setTicker] = useState<TickerItem[]>([]);
   const [tickerIndex, setTickerIndex] = useState(0);
   const [tickerPaused, setTickerPaused] = useState(false);
   const [activeFilter, setActiveFilter] = useState("live");
@@ -313,47 +303,14 @@ export function NearbyGrid() {
     return () => { canceled = true; };
   }, [supabase, effectivePos]);
 
-  // Fetch recent requests for ticker
-  useEffect(() => {
-    let canceled = false;
-    async function loadTicker() {
-      const { data } = await supabase
-        .from("requests")
-        .select("id,sentence,created_at")
-        .order("created_at", { ascending: false })
-        .limit(10);
-      if (!canceled) setTicker((data ?? []) as TickerItem[]);
-    }
-    loadTicker();
-    return () => { canceled = true; };
-  }, [supabase]);
-
-  // Advance ticker index every 3 seconds
+  // Advance demo ticker every 3 seconds
   useEffect(() => {
     if (tickerPaused) return;
-    const count = ticker.length > 0 ? ticker.length : DEMO_TICKER.length;
-    if (count <= 1) return;
     const timer = setInterval(() => {
-      setTickerIndex((i) => (i + 1) % count);
+      setTickerIndex((i) => (i + 1) % DEMO_TICKER.length);
     }, 3000);
     return () => clearInterval(timer);
-  }, [ticker.length, tickerPaused]);
-
-  // Real-time: new requests → prepend to ticker
-  useEffect(() => {
-    const channel = supabase
-      .channel("nearby-ticker")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "requests" },
-        (payload) => {
-          const row = payload.new as TickerItem;
-          setTicker((prev) => [row, ...prev].slice(0, 10));
-        },
-      )
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [supabase]);
+  }, [tickerPaused]);
 
   // Real-time: seller online status changes
   useEffect(() => {
@@ -465,12 +422,6 @@ export function NearbyGrid() {
   // Online seller count
   const onlineCount = useMemo(() => sorted.filter((s) => s.is_online && !s.is_ghost).length, [sorted]);
 
-  // Merge real ticker sentences with demo messages (demo fills in when few real broadcasts)
-  const tickerMessages = useMemo(() => {
-    const real = ticker.map((t) => t.sentence).filter(Boolean);
-    if (real.length >= 5) return real;
-    return [...real, ...DEMO_TICKER].slice(0, DEMO_TICKER.length);
-  }, [ticker]);
 
   return (
     <>
@@ -554,9 +505,9 @@ export function NearbyGrid() {
           <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
             <span className="text-sm">⚡</span>
             <p className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">
-              {tickerMessages[tickerIndex % tickerMessages.length]}
+              {DEMO_TICKER[tickerIndex % DEMO_TICKER.length]}
             </p>
-            <span className="flex-shrink-0 text-[10px] text-zinc-600">{tickerMessages.length} active</span>
+            <span className="flex-shrink-0 text-[10px] text-zinc-600">{DEMO_TICKER.length} active</span>
           </div>
         </div>
 
