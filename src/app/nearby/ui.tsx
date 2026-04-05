@@ -35,6 +35,17 @@ const PAGE_SIZE = 9;
 const SF_DEFAULT = { lat: 37.6879, lng: -122.4702 };
 const BAY_AREA_RADIUS_KM = 80;
 
+const DEMO_TICKER = [
+  "5 people looking for a DJ this weekend",
+  "Someone needs an electrician tonight",
+  "2 requests for house cleaning this Saturday",
+  "Looking for a barber near Daly City ASAP",
+  "3 people need a plumber this week",
+  "Someone looking for a photographer for Sunday",
+  "2 requests for moving help this Friday",
+  "Need a mobile car wash in South SF today",
+];
+
 const FOMO_DEMANDS = [
   { label: "2 DJs", color: "#7c5ce8" },
   { label: "4 cleaners", color: "#4d9ef5" },
@@ -319,9 +330,11 @@ export function NearbyGrid() {
 
   // Advance ticker index every 3 seconds
   useEffect(() => {
-    if (ticker.length <= 1 || tickerPaused) return;
+    if (tickerPaused) return;
+    const count = ticker.length > 0 ? ticker.length : DEMO_TICKER.length;
+    if (count <= 1) return;
     const timer = setInterval(() => {
-      setTickerIndex((i) => (i + 1) % ticker.length);
+      setTickerIndex((i) => (i + 1) % count);
     }, 3000);
     return () => clearInterval(timer);
   }, [ticker.length, tickerPaused]);
@@ -452,6 +465,13 @@ export function NearbyGrid() {
   // Online seller count
   const onlineCount = useMemo(() => sorted.filter((s) => s.is_online && !s.is_ghost).length, [sorted]);
 
+  // Merge real ticker sentences with demo messages (demo fills in when few real broadcasts)
+  const tickerMessages = useMemo(() => {
+    const real = ticker.map((t) => t.sentence).filter(Boolean);
+    if (real.length >= 5) return real;
+    return [...real, ...DEMO_TICKER].slice(0, DEMO_TICKER.length);
+  }, [ticker]);
+
   return (
     <>
       <div className="flex min-h-dvh flex-col pb-24" style={{ background: "#0d0d12" }}>
@@ -524,23 +544,21 @@ export function NearbyGrid() {
         </div>
 
         {/* ── Live demand ticker ── */}
-        {ticker.length > 0 && (
-          <div
-            className="mx-auto w-full max-w-[600px] px-4 pb-2"
-            onMouseEnter={() => setTickerPaused(true)}
-            onMouseLeave={() => setTickerPaused(false)}
-            onTouchStart={() => setTickerPaused(true)}
-            onTouchEnd={() => setTickerPaused(false)}
-          >
-            <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
-              <span className="text-sm">⚡</span>
-              <p className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">
-                {ticker[tickerIndex % ticker.length]?.sentence}
-              </p>
-              <span className="flex-shrink-0 text-[10px] text-zinc-600">{ticker.length} active</span>
-            </div>
+        <div
+          className="mx-auto w-full max-w-[600px] px-4 pb-2"
+          onMouseEnter={() => setTickerPaused(true)}
+          onMouseLeave={() => setTickerPaused(false)}
+          onTouchStart={() => setTickerPaused(true)}
+          onTouchEnd={() => setTickerPaused(false)}
+        >
+          <div className="flex items-center gap-2 rounded-lg border border-white/[0.06] bg-white/[0.03] px-3 py-2">
+            <span className="text-sm">⚡</span>
+            <p className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">
+              {tickerMessages[tickerIndex % tickerMessages.length]}
+            </p>
+            <span className="flex-shrink-0 text-[10px] text-zinc-600">{tickerMessages.length} active</span>
           </div>
-        )}
+        </div>
 
         {/* ── Broadcasts unanswered FOMO ── */}
         <div className="mx-auto w-full max-w-[600px] px-4 pb-2">
