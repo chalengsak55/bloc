@@ -419,36 +419,12 @@ export function NearbyGrid() {
     <>
       <div className="flex min-h-dvh flex-col pb-24" style={{ background: "#0d0d12" }}>
 
-        {/* ── Top bar: Bloc. logo + live pill ── */}
-        <div className="mx-auto w-full max-w-[600px] px-4 pt-4">
-          <div className="flex items-center justify-between">
-            <span
-              className="text-lg font-bold tracking-tight"
-              style={{
-                fontFamily: "var(--font-instrument-serif), Georgia, serif",
-                background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-                backgroundClip: "text",
-              }}
-            >
-              Bloc.
-            </span>
-            <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-medium text-emerald-400">
-              <span className="relative inline-flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-400" />
-              </span>
-              live
-            </span>
-          </div>
-        </div>
-
         {/* ── Page title + counts ── */}
-        <div className="mx-auto w-full max-w-[600px] px-4 pb-1 pt-2">
+        <div className="mx-auto w-full max-w-[600px] px-4 pb-1 pt-6">
           <h1
-            className="text-5xl tracking-tight"
+            className="tracking-tight"
             style={{
+              fontSize: "32px",
               fontFamily: "var(--font-instrument-serif), Georgia, serif",
               background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
               WebkitBackgroundClip: "text",
