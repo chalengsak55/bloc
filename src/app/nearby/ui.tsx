@@ -227,14 +227,14 @@ export function NearbyGrid() {
     }
   }
 
-  // Geolocation
-  useEffect(() => {
+  // Geolocation — only triggered by "Near me" button, not on mount
+  function requestUserLocation() {
     if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-      () => {}, // silently ignore denied
+      () => {},
     );
-  }, []);
+  }
 
 // Fetch all sellers + ghost businesses (filtering is client-side)
   useEffect(() => {
@@ -507,13 +507,7 @@ export function NearbyGrid() {
                 </span>
                 {isUsingDefault && (
                   <button
-                    onClick={() => {
-                      if (!navigator.geolocation) return;
-                      navigator.geolocation.getCurrentPosition(
-                        (pos) => setUserPos({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                        () => {},
-                      );
-                    }}
+                    onClick={requestUserLocation}
                     className="rounded-full border border-white/10 bg-white/[0.04] px-2.5 py-1 text-[10px] text-zinc-500 transition hover:bg-white/[0.08]"
                   >
                     Near me
