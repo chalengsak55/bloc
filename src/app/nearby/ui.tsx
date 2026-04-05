@@ -405,9 +405,9 @@ export function NearbyGrid() {
       }
     }
     return [
-      { label: "Open Now", sellers: claimedOpen },
-      { label: "Closed", sellers: claimedClosed },
-      { label: "Unclaimed Businesses", sellers: unclaimed },
+      { label: "RESPONDING NOW", dot: "emerald", sellers: claimedOpen },
+      { label: "OPEN \u00b7 AGENT ON", dot: "emerald", sellers: claimedClosed },
+      { label: "UNCLAIMED NEARBY", dot: "zinc", sellers: unclaimed },
     ].filter((g) => g.sellers.length > 0);
   }, [sorted, displayCount]);
 
@@ -542,24 +542,84 @@ export function NearbyGrid() {
             <>
               {groups.map((group) => (
                 <div key={group.label}>
+                  {/* Section header */}
                   <div className="flex items-center justify-between px-4 pb-2 pt-5">
                     <div className="flex items-center gap-2">
                       <span className={`inline-block h-2 w-2 rounded-full ${
-                        group.label === "Open Now" ? "bg-emerald-400" :
-                        group.label === "Closed" ? "bg-zinc-500" : "bg-zinc-600"
+                        group.dot === "emerald" ? "bg-emerald-400" : "bg-zinc-600"
                       }`} />
                       <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
                         {group.label}
                       </span>
                     </div>
                     <span className="text-[11px] text-zinc-600">
-                      {group.sellers.length} {group.label === "Unclaimed Businesses" ? "businesses" : "agents"}
+                      {group.sellers.length} {group.label === "UNCLAIMED NEARBY" ? "businesses" : "agents"}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3">
-                    {group.sellers.map((s) => (
-                      <SellerCell key={s.id} seller={s} dist={getDistLabel(s)} onMessage={handleMessage} />
-                    ))}
+
+                  {/* 3-col card grid */}
+                  <div className="grid grid-cols-3 gap-2 px-4">
+                    {group.sellers.map((s) => {
+                      const dist = getDistLabel(s);
+                      const initials = (s.display_name ?? "??").split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+                      // Deterministic hue from id
+                      let hue = 0;
+                      for (let i = 0; i < s.id.length; i++) hue = (hue * 31 + s.id.charCodeAt(i)) % 360;
+
+                      return (
+                        <button
+                          key={s.id}
+                          onClick={() => handleMessage(s)}
+                          className="relative overflow-hidden rounded-xl border border-white/[0.08] transition-opacity active:opacity-80"
+                          style={{ aspectRatio: "3/4" }}
+                        >
+                          {/* Background */}
+                          {s.avatar_url ? (
+                            <img
+                              src={s.avatar_url}
+                              alt={s.display_name ?? ""}
+                              className="absolute inset-0 h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div
+                              className="absolute inset-0"
+                              style={{ background: `linear-gradient(135deg, hsl(${hue},40%,20%), hsl(${(hue + 60) % 360},40%,12%))` }}
+                            >
+                              <span className="absolute inset-0 flex items-center justify-center text-2xl font-bold text-white/20">
+                                {initials}
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Live dot */}
+                          {s.is_online && !s.is_ghost && (
+                            <div className="absolute right-2 top-2">
+                              <span className="relative inline-flex h-2 w-2">
+                                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                                <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                              </span>
+                            </div>
+                          )}
+
+                          {/* Ghost indicator */}
+                          {s.is_ghost && (
+                            <div className="absolute right-2 top-2">
+                              <span className="inline-block h-2 w-2 rounded-full bg-zinc-600" />
+                            </div>
+                          )}
+
+                          {/* Bottom info */}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent px-2 pb-2 pt-8">
+                            <div className="truncate text-[11px] font-semibold leading-tight text-white">
+                              {s.display_name ?? "Business"}
+                            </div>
+                            <div className="truncate text-[10px] text-zinc-400">
+                              {dist ? `${dist} · ${s.category ?? "—"}` : (s.category ?? "—")}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
               ))}
