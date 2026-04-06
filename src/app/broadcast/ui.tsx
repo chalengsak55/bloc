@@ -238,7 +238,7 @@ export function BroadcastComposer() {
         {/* ── Header: Bloc. + live badge ── */}
         <div className="flex items-center justify-between">
           <span
-            className="text-lg font-bold tracking-tight"
+            className="text-2xl font-bold tracking-tight"
             style={{
               fontFamily: "var(--font-instrument-serif), Georgia, serif",
               background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
