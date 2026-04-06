@@ -368,8 +368,9 @@ export function NearbyGrid() {
 
   function handleMessage(seller: Seller) {
     if (seller.id.startsWith("demo:") && seller.place_id) {
-      // Demo claimed sellers → ghost storefront with claimed view
-      router.push(`/ghost/${seller.place_id}?claimed=true`);
+      // Demo claimed sellers → ghost storefront with claimed view + theme
+      const theme = seller.storefront_theme ?? "warm_cozy";
+      router.push(`/ghost/${seller.place_id}?claimed=true&theme=${theme}`);
     } else if (seller.is_ghost && seller.place_id) {
       // Unclaimed ghost businesses → ghost storefront
       router.push(`/ghost/${seller.place_id}`);

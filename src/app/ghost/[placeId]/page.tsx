@@ -27,10 +27,10 @@ export default async function GhostPage({
   searchParams,
 }: {
   params: Promise<{ placeId: string }>;
-  searchParams: Promise<{ claimed?: string }>;
+  searchParams: Promise<{ claimed?: string; theme?: string }>;
 }) {
   const { placeId } = await params;
-  const { claimed } = await searchParams;
+  const { claimed, theme } = await searchParams;
 
   const supabase = createSupabaseServiceClient();
   const { data: ghost } = await supabase
@@ -42,5 +42,11 @@ export default async function GhostPage({
 
   if (!ghost) notFound();
 
-  return <GhostStorefront ghost={ghost} isClaimed={claimed === "true"} />;
+  return (
+    <GhostStorefront
+      ghost={ghost}
+      isClaimed={claimed === "true"}
+      themeId={theme ?? null}
+    />
+  );
 }
