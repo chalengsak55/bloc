@@ -108,7 +108,7 @@ export function GhostStorefront({
           HERO PHOTO — top portion with gradient fade
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="relative" style={{ height: "55vh" }}>
-        {/* Photo */}
+        {/* Photo background — Google Places photo or theme gradient fallback */}
         {ghost.photo_url ? (
           <img
             src={ghost.photo_url}
@@ -120,7 +120,11 @@ export function GhostStorefront({
         ) : (
           <div
             className="absolute inset-0"
-            style={{ background: `linear-gradient(135deg, hsl(${hue},40%,18%), hsl(${(hue + 60) % 360},30%,12%))` }}
+            style={{
+              background: isClaimed
+                ? theme.colors.backgroundGradient
+                : `linear-gradient(135deg, hsl(${hue},50%,22%), hsl(${(hue + 60) % 360},40%,16%))`,
+            }}
           />
         )}
 
@@ -204,6 +208,8 @@ export function GhostStorefront({
             fontSize: "42px",
             fontFamily: "'Instrument Serif', Georgia, serif",
             color: isClaimed ? textColor : "rgba(255,255,255,0.85)",
+            overflowWrap: "break-word",
+            wordBreak: "break-word",
           }}
         >
           {ghost.name}
