@@ -190,7 +190,7 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
           </p>
 
           {/* Bottom row: metrics left, Ask button right */}
-          <div className="mt-5 flex items-end justify-between">
+          <div className="mt-5 flex items-center justify-between">
             {/* Trust metrics — left side */}
             <div className="flex items-center gap-4">
               <div>

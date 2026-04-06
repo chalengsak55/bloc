@@ -210,8 +210,8 @@ export function GhostStorefront({
             {city && <>{ghost.category && <span> · </span>}<span>{city}</span></>}
           </p>
 
-          {/* Bottom row: metrics + Ask button */}
-          <div className="mt-5 flex items-end justify-between">
+          {/* Bottom row: metrics left + Ask button right — same row */}
+          <div className="mt-5 flex items-center justify-between">
             {/* Metrics left */}
             <div className="flex items-center gap-4">
               {isClaimed ? (
@@ -264,18 +264,7 @@ export function GhostStorefront({
           ═══════════════════════════════════════════════════════════════════ */}
       <div style={{ background: isClaimed ? theme.colors.backgroundGradient : "#0a0a0f" }}>
 
-        {/* ── About ── */}
-        {ghost.category && (
-          <div className="px-6 pt-8">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: mutedColor }}>
-              About
-            </h2>
-            <p className="text-sm leading-relaxed" style={{ color: isClaimed ? textColor : "#a1a1aa" }}>
-              {ghost.name} is a {ghost.category} business{city ? ` in ${city}` : ""}.
-              {openStatus.nextChange ? ` ${openStatus.nextChange}.` : ""}
-            </p>
-          </div>
-        )}
+        {/* ── About (only if seller wrote a real description) ── */}
 
         {/* ── Agent chat preview ── */}
         <div className="px-6 pt-8">
