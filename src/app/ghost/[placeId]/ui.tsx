@@ -39,11 +39,18 @@ export function GhostStorefront({
   ghost,
   isClaimed = false,
   themeId = null,
+  overrides = null,
 }: {
   ghost: GhostBusiness;
   isClaimed?: boolean;
   themeId?: string | null;
+  overrides?: { name?: string; cat?: string; loc?: string; photo?: string } | null;
 }) {
+  // Apply overrides from demo sellers
+  const displayName = overrides?.name ?? ghost.name;
+  const displayCategory = overrides?.cat ?? ghost.category;
+  const displayPhoto = overrides?.photo ?? ghost.photo_url;
+  const displayAddress = overrides?.loc ?? ghost.address;
   const router = useRouter();
   const theme = isClaimed ? getTheme(themeId) : getTheme("dark_neon");
   const hue = getHue(ghost.place_id);
@@ -51,10 +58,10 @@ export function GhostStorefront({
     () => isOpenNow(ghost.opening_hours, ghost.timezone),
     [ghost.opening_hours, ghost.timezone],
   );
-  const firstName = ghost.name.split(/[\s·|–-]/)[0].trim();
+  const firstName = displayName.split(/[\s·|–-]/)[0].trim();
   const city = (() => {
-    if (!ghost.address) return "";
-    const parts = ghost.address.split(",").map((s) => s.trim());
+    if (!displayAddress) return "";
+    const parts = displayAddress.split(",").map((s) => s.trim());
     if (parts.length >= 2) return parts[1].replace(/\s+\d{5}.*$/, "");
     return parts[0];
   })();
@@ -84,10 +91,10 @@ export function GhostStorefront({
         style={{ width: "100%", maxWidth: 600, height: "100dvh" }}
       >
         {/* ── Photo background ── */}
-        {ghost.photo_url ? (
+        {displayPhoto ? (
           <img
-            src={ghost.photo_url}
-            alt={ghost.name}
+            src={displayPhoto}
+            alt={displayName}
             className="absolute inset-0 h-full w-full object-cover"
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
@@ -154,7 +161,7 @@ export function GhostStorefront({
             <button
               type="button"
               onClick={() => {
-                if (navigator.share) navigator.share({ title: ghost.name, url: window.location.href });
+                if (navigator.share) navigator.share({ title: displayName, url: window.location.href });
                 else navigator.clipboard.writeText(window.location.href);
               }}
               className="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-white/[0.15] text-lg text-white"
@@ -184,7 +191,7 @@ export function GhostStorefront({
               overflowWrap: "break-word",
             }}
           >
-            {ghost.name}
+            {displayName}
           </h1>
 
           {/* ── Info items — below name, pushes bottom row down ── */}
@@ -204,10 +211,10 @@ export function GhostStorefront({
               </div>
             )}
             {/* Category */}
-            {ghost.category && (
+            {displayCategory && (
               <div className="flex items-center gap-2 text-sm text-white/80">
                 <span>🏷️</span>
-                <span className="font-medium capitalize text-white">{ghost.category}</span>
+                <span className="font-medium capitalize text-white">{displayCategory}</span>
               </div>
             )}
             {/* Open status */}
@@ -234,7 +241,7 @@ export function GhostStorefront({
                       {firstName[0]}
                     </div>
                     <div>
-                      <div className="text-[13px] font-medium text-white">{ghost.name}</div>
+                      <div className="text-[13px] font-medium text-white">{displayName}</div>
                       <div className="text-[11px] text-white/40">😊 312 smiles · 1.5 yr on Bloc</div>
                     </div>
                   </div>
@@ -274,7 +281,7 @@ export function GhostStorefront({
               <button
                 type="button"
                 onClick={() => {
-                  if (navigator.share) navigator.share({ title: ghost.name, url: window.location.href });
+                  if (navigator.share) navigator.share({ title: displayName, url: window.location.href });
                   else navigator.clipboard.writeText(window.location.href);
                 }}
                 className="ml-auto flex h-[44px] w-[44px] items-center justify-center rounded-full border border-white/[0.15] text-sm text-white"

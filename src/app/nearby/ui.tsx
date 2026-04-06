@@ -368,9 +368,17 @@ export function NearbyGrid() {
 
   function handleMessage(seller: Seller) {
     if (seller.id.startsWith("demo:") && seller.place_id) {
-      // Demo claimed sellers → ghost storefront with claimed view + theme
+      // Demo claimed sellers → ghost storefront with claimed view + theme + overrides
       const theme = seller.storefront_theme ?? "warm_cozy";
-      router.push(`/ghost/${seller.place_id}?claimed=true&theme=${theme}`);
+      const params = new URLSearchParams({
+        claimed: "true",
+        theme,
+        ...(seller.display_name ? { name: seller.display_name } : {}),
+        ...(seller.category ? { cat: seller.category } : {}),
+        ...(seller.location_text ? { loc: seller.location_text } : {}),
+        ...(seller.avatar_url ? { photo: seller.avatar_url } : {}),
+      });
+      router.push(`/ghost/${seller.place_id}?${params.toString()}`);
     } else if (seller.is_ghost && seller.place_id) {
       // Unclaimed ghost businesses → ghost storefront
       router.push(`/ghost/${seller.place_id}`);
