@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     manualData?: { name?: string; category?: string; location?: string; description?: string };
     scrapedData?: { title?: string; category?: string; location?: string; description?: string };
     reviewedData?: { name?: string; category?: string; location?: string; description?: string; ctaType?: string };
+    themeId?: string;
   };
 
   try {
@@ -47,6 +48,7 @@ export async function POST(req: Request) {
   const locationText = reviewed?.location || manual?.location || scraped?.location || null;
   const bio = reviewed?.description || manual?.description || scraped?.description || null;
   const ctaType = reviewed?.ctaType || null;
+  const storefrontTheme = data.themeId || "warm_cozy";
 
   /* ── Upload cover if provided ── */
   const service = createSupabaseServiceClient();
@@ -94,6 +96,7 @@ export async function POST(req: Request) {
     location_text: locationText,
     bio,
     cta_type: ctaType,
+    storefront_theme: storefrontTheme,
     is_online: true,
     updated_at: new Date().toISOString(),
   };

@@ -13,7 +13,6 @@ export function PublishForm() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [isVideo, setIsVideo] = useState(false);
-  const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   /* ── Load sessionStorage on mount ── */
@@ -61,34 +60,36 @@ export function PublishForm() {
     setPreview(URL.createObjectURL(f));
   }, [preview]);
 
-  /* ── Publish ── */
-  const handlePublish = useCallback(async () => {
-    if (!onboardingData || publishing) return;
-    setPublishing(true);
+  /* ── Continue to theme selection ── */
+  const handleContinue = useCallback(async () => {
+    if (!onboardingData) return;
     setError(null);
 
     try {
-      const formData = new FormData();
-      formData.append("data", JSON.stringify(onboardingData));
-      if (file) formData.append("cover", file);
+      // Save cover as data URL to sessionStorage so Step 4 can access it
+      let coverDataUrl: string | null = null;
+      if (file) {
+        coverDataUrl = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+      }
 
-      const res = await fetch("/api/seller/publish", {
-        method: "POST",
-        body: formData,
-      });
+      const updated = {
+        ...onboardingData,
+        coverDataUrl,
+        coverFileName: file?.name ?? null,
+        coverFileType: file?.type ?? null,
+      };
+      sessionStorage.setItem("onboarding", JSON.stringify(updated));
 
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Publish failed");
-
-      // Cleanup
-      sessionStorage.removeItem("onboarding");
-
-      router.push("/seller/dashboard");
+      router.push("/seller/onboarding/step4");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-      setPublishing(false);
     }
-  }, [onboardingData, file, publishing, router]);
+  }, [onboardingData, file, router]);
 
   /* ── Cleanup preview URL on unmount ── */
   useEffect(() => {
@@ -197,21 +198,13 @@ export function PublishForm() {
       <div className="flex flex-col gap-3">
         <button
           type="button"
-          disabled={publishing}
-          onClick={handlePublish}
-          className="relative w-full overflow-hidden rounded-2xl py-3.5 text-sm font-semibold text-white shadow-lg transition active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-60"
+          onClick={handleContinue}
+          className="relative w-full overflow-hidden rounded-2xl py-3.5 text-sm font-semibold text-white shadow-lg transition active:scale-[0.99]"
           style={{
             background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)",
           }}
         >
-          {publishing ? (
-            <span className="flex items-center justify-center gap-2">
-              <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-              Publishing…
-            </span>
-          ) : (
-            "Publish my storefront →"
-          )}
+          Choose your theme →
         </button>
         <button
           type="button"
