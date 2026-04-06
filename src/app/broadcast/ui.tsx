@@ -281,7 +281,10 @@ export function BroadcastComposer() {
         </div>
 
         {/* ── Suggestion pills ── */}
-        <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <div className="mt-5 text-center text-[10px] font-semibold uppercase tracking-widest text-zinc-700">
+          Trending near you
+        </div>
+        <div className="mt-2.5 flex flex-wrap justify-center gap-2">
           {SUGGESTION_PILLS.map((pill) => (
             <button
               key={pill.label}
