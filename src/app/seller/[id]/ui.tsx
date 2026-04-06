@@ -110,7 +110,7 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
         <div className="absolute inset-0" style={{ background: theme.colors.backgroundGradient, opacity: 0.3 }} />
 
         {/* Dark gradient — bottom 60% fades to black */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black from-10% via-black/70 via-40% to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 from-5% via-black/40 via-40% to-transparent" />
 
         {/* Sparkles */}
         {theme.sparkles && <Sparkles color={theme.colors.accent} />}

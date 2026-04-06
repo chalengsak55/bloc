@@ -87,7 +87,13 @@ export function GhostStorefront({
     [ghost.opening_hours, ghost.timezone],
   );
   const firstName = ghost.name.split(/[\s·|–-]/)[0].trim();
-  const city = ghost.address?.split(",")[0] ?? "";
+  // Extract city name (usually 2nd part: "123 Main St, San Francisco, CA" → "San Francisco")
+  const city = (() => {
+    if (!ghost.address) return "";
+    const parts = ghost.address.split(",").map((s) => s.trim());
+    if (parts.length >= 2) return parts[1].replace(/\s+\d{5}.*$/, ""); // strip zip
+    return parts[0];
+  })();
 
   // Muted colors for unclaimed
   const accent = isClaimed ? theme.colors.accent : "#52525b";
@@ -126,8 +132,8 @@ export function GhostStorefront({
           <div className="absolute inset-0" style={{ background: theme.colors.backgroundGradient, opacity: 0.25 }} />
         )}
 
-        {/* Dark gradient overlay — top transparent → bottom black */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black from-10% via-black/70 via-50% to-transparent" />
+        {/* Dark gradient overlay — lighter so photo is visible */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/95 from-5% via-black/40 via-40% to-transparent" />
 
         {/* Sparkles (claimed themes with sparkles) */}
         {isClaimed && theme.sparkles && <Sparkles color={theme.colors.accent} />}
