@@ -287,78 +287,17 @@ export function GhostStorefront({
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          BELOW FOLD
-          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="mx-auto max-w-[600px] px-6 pb-24 pt-7" style={{ background: "#000" }}>
-
-        {/* ── Agent chat ── */}
-        <div className="mb-3.5 text-[11px] uppercase tracking-[0.1em]" style={{ color: "#444" }}>
-          Chat with {firstName}&apos;s agent
-        </div>
-        <div className="mb-5 overflow-hidden rounded-[18px] border border-[#1a1a1a]" style={{ background: "#0a0a0a" }}>
-          <div className="flex items-center gap-3 px-[18px] pb-3 pt-4">
-            <div className="relative h-[38px] w-[38px] flex-shrink-0 overflow-hidden rounded-full bg-zinc-800">
-              {ghost.photo_url && (
-                <img src={ghost.photo_url} alt="" className="h-full w-full object-cover" />
-              )}
-              <div
-                className="absolute bottom-[1px] right-[1px] h-[9px] w-[9px] rounded-full border-2"
-                style={{ background: "#00ff87", borderColor: "#0a0a0a" }}
-              />
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold text-[#e0e0e0]">{firstName}&apos;s Agent</div>
-              <div className="text-[11px]" style={{ color: "rgba(0,255,135,0.47)" }}>● online · replies in ~2 min</div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-2 px-[18px] pb-4">
-            <div
-              className="max-w-[88%] rounded-2xl rounded-bl-[4px] px-3.5 py-2.5 text-[12px] leading-relaxed"
-              style={{ background: "#141414", color: "#888" }}
-            >
-              {openStatus.isOpen
-                ? <>Hi! How can I help you today? 🎉</>
-                : <>We&apos;re currently closed{openStatus.nextChange ? `. ${openStatus.nextChange}` : ""}. Feel free to leave a message!</>}
-            </div>
-            <div
-              className="ml-auto max-w-[88%] self-end rounded-2xl rounded-br-[4px] px-3.5 py-2.5 text-[12px] leading-relaxed text-white"
-              style={{
-                background: isClaimed
-                  ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
-                  : "linear-gradient(135deg, #3f3f46, #52525b)",
-              }}
-            >
-              Hi, are you open this weekend?
-            </div>
-          </div>
-          <Link
-            href={`/ghost/${ghost.place_id}/chat`}
-            className="mx-[18px] mb-4 block rounded-[14px] py-3.5 text-center text-[13px] font-semibold text-white"
-            style={{
-              background: isClaimed
-                ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
-                : "linear-gradient(135deg, #3f3f46, #52525b)",
-            }}
-          >
-            💬 Continue with {firstName}&apos;s agent
-          </Link>
-        </div>
-
-        {/* ── Footer ── */}
-        {!isClaimed ? (
-          <div className="mt-4 text-center text-[11px]">
+      {/* ── Footer (below hero) ── */}
+      {!isClaimed && (
+        <div className="mx-auto max-w-[600px] px-6 py-6" style={{ background: "#000" }}>
+          <div className="text-center text-[11px]">
             <span style={{ color: "#222" }}>Own this business? </span>
             <Link href={`/ghost/${ghost.place_id}/claim`} style={{ color: "#444" }}>
               Get discovered free →
             </Link>
           </div>
-        ) : (
-          <div className="mt-2 text-center text-[11px]" style={{ color: "#222" }}>
-            Verified business on Bloc
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
