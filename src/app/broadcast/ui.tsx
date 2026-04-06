@@ -15,10 +15,10 @@ const PLACEHOLDER_EXAMPLES = [
 ];
 
 const SUGGESTION_PILLS = [
-  { emoji: "🎵", label: "DJ for Saturday" },
-  { emoji: "✂️", label: "Barber tonight" },
-  { emoji: "👨‍🍳", label: "Private chef" },
-  { emoji: "📦", label: "Moving help" },
+  { emoji: "🎵", label: "DJ for Saturday", color: "#7c5ce8" },
+  { emoji: "✂️", label: "Barber tonight", color: "#f472b6" },
+  { emoji: "👨‍🍳", label: "Private chef", color: "#f59e0b" },
+  { emoji: "📦", label: "Moving help", color: "#00d4c8" },
 ];
 
 // ─── Typewriter ──────────────────────────────────────────────────────────────
@@ -287,7 +287,8 @@ export function BroadcastComposer() {
               key={pill.label}
               type="button"
               onClick={() => setSentence(pill.label)}
-              className="rounded-full border border-white/[0.08] bg-white/[0.03] px-3 py-1.5 text-[12px] text-zinc-400 transition hover:bg-white/[0.06]"
+              className="rounded-full bg-white/[0.03] px-3 py-1.5 text-[12px] transition hover:bg-white/[0.06]"
+              style={{ border: `1px solid ${pill.color}30`, color: pill.color }}
             >
               {pill.emoji} {pill.label}
             </button>
@@ -307,12 +308,9 @@ export function BroadcastComposer() {
               Broadcasting...
             </span>
           ) : (
-            "⚡ Broadcast Now — It's Free"
+            "⚡ Broadcast Now →"
           )}
         </button>
-        <p className="mt-2 text-center text-[10px] text-zinc-600">
-          Free · No account needed · Agents start immediately
-        </p>
 
         {error && <p className="mt-3 text-center text-xs text-red-400">{error}</p>}
 
