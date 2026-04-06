@@ -111,7 +111,7 @@ export function GhostStorefront({
         />
 
         {/* ── Sparkles (claimed only) ── */}
-        {isClaimed && theme.sparkles && (
+        {(
           <div className="pointer-events-none absolute inset-0 z-[3]">
             {sparkles.map((s, i) => (
               <span
