@@ -21,6 +21,7 @@ create table if not exists public.profiles (
   avatar_url text,
 
   is_online boolean not null default false,
+  storefront_theme text not null default 'warm_cozy',
 
   lat double precision,
   lng double precision,

@@ -25,6 +25,7 @@ type Seller = {
   card_text?: string;
   slideshow_urls?: string[];
   card_video?: string;
+  storefront_theme?: string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -55,6 +56,7 @@ const DEMO_SELLERS: Seller[] = [
     avatar_url: "https://lh3.googleusercontent.com/place-photos/AL8-SNH5xH_durVppNRIUDBooTFDBQ14FGI_6pY0jAm-CGOuYyfpyD00SBiIt_debpmhBD-DPKR0H5gLwokEagBEkrD1RLucnlDwjSPQaUYYjX_2YZ57IBMFscv-1u2dIyLaRw73Az8jz_I-l0zxUVU=s4800-w800-h800",
     is_ghost: false,
     card_mode: "slideshow",
+    storefront_theme: "warm_cozy",
     slideshow_urls: [
       "https://lh3.googleusercontent.com/place-photos/AL8-SNH5xH_durVppNRIUDBooTFDBQ14FGI_6pY0jAm-CGOuYyfpyD00SBiIt_debpmhBD-DPKR0H5gLwokEagBEkrD1RLucnlDwjSPQaUYYjX_2YZ57IBMFscv-1u2dIyLaRw73Az8jz_I-l0zxUVU=s4800-w800-h800",
       "https://lh3.googleusercontent.com/place-photos/AL8-SNGvG8pMBSiVpjEvcKs7DR4l5Lqhnerms5lUWDPDqyFqozIj7Q7Nc26WpBU7e63lRGBECac7nIfsk6rdZ1McYyTfXgOHMivsiFJUjOi5pA2PJlyEb7CZxcfTQ9xNGoEM4S1eFqCdOGG3eN146bI=s4800-w800-h800",
@@ -74,6 +76,7 @@ const DEMO_SELLERS: Seller[] = [
     is_ghost: false,
     card_mode: "text",
     card_text: "Walk-ins welcome · Best fade in SF Bay · No wait today",
+    storefront_theme: "minimal_studio",
   },
   {
     id: "demo:aleco-electric",
@@ -88,6 +91,7 @@ const DEMO_SELLERS: Seller[] = [
     is_ghost: false,
     card_mode: "agent",
     card_video: "https://assets.mixkit.co/videos/23695/23695-720.mp4",
+    storefront_theme: "ocean_blue",
   },
 ];
 
