@@ -182,7 +182,7 @@ export function GhostStorefront({
       {/* ═══════════════════════════════════════════════════════════════════
           CONTENT — normal document flow, NOT absolute/fixed
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="px-6 pb-12" style={{ marginTop: "-4rem" }}>
+      <div className="mx-auto max-w-[600px] px-6 pb-12" style={{ marginTop: "-4rem" }}>
 
         {/* Open / Closed pill */}
         <div className="mb-3">

@@ -147,7 +147,7 @@ export function SellerStorefront({ seller }: { seller: SellerProfile }) {
         </div>
 
         {/* ── Bottom overlay content ── */}
-        <div className="absolute inset-x-0 bottom-0 z-10 px-6 pb-8">
+        <div className="absolute inset-x-0 bottom-0 z-10 mx-auto max-w-[600px] px-6 pb-8">
 
           {/* Availability badge */}
           <div className="mb-3">
