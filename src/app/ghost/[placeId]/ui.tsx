@@ -27,8 +27,6 @@ type GhostBusiness = {
   message_count: number;
 };
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
 function getHue(id: string): number {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) % 360;
@@ -38,37 +36,37 @@ function getHue(id: string): number {
 // ─── Sparkles ────────────────────────────────────────────────────────────────
 
 function Sparkles({ color }: { color: string }) {
-  const particles = useMemo(() =>
-    Array.from({ length: 24 }, (_, i) => ({
-      id: i,
-      left: `${Math.random() * 100}%`,
-      top: `${Math.random() * 100}%`,
-      delay: `${Math.random() * 5}s`,
-      duration: `${2 + Math.random() * 3}s`,
-      size: 1 + Math.random() * 2.5,
-    })),
-  []);
+  const spots = useMemo(() => [
+    { top: "12%", left: "6%", dur: "2.1s", delay: "0s", size: 16 },
+    { top: "18%", left: "90%", dur: "2.8s", delay: "0.7s", size: 11 },
+    { top: "35%", left: "4%", dur: "3.2s", delay: "1.4s", size: 9 },
+    { top: "50%", left: "94%", dur: "2.4s", delay: "0.3s", size: 14 },
+    { top: "65%", left: "12%", dur: "2.9s", delay: "1s", size: 10 },
+    { top: "8%", left: "40%", dur: "2.2s", delay: "2s", size: 8 },
+    { top: "75%", left: "82%", dur: "2.6s", delay: "0.5s", size: 12 },
+  ], []);
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
-      {particles.map((p) => (
+    <div className="pointer-events-none absolute inset-0 z-[3] overflow-hidden">
+      {spots.map((s, i) => (
         <span
-          key={p.id}
-          className="absolute animate-pulse rounded-full"
+          key={i}
+          className="absolute animate-pulse"
           style={{
-            left: p.left, top: p.top,
-            width: p.size, height: p.size,
-            background: color,
-            animationDelay: p.delay,
-            animationDuration: p.duration,
-            opacity: 0.5,
+            top: s.top, left: s.left,
+            fontSize: s.size,
+            color,
+            animationDuration: s.dur,
+            animationDelay: s.delay,
           }}
-        />
+        >
+          ✦
+        </span>
       ))}
     </div>
   );
 }
 
-// ─── Ghost Storefront (Partiful-style) ───────────────────────────────────────
+// ─── Ghost Storefront ────────────────────────────────────────────────────────
 
 export function GhostStorefront({
   ghost,
@@ -94,27 +92,24 @@ export function GhostStorefront({
     return parts[0];
   })();
 
-  const accent = isClaimed ? theme.colors.accent : "#52525b";
-  const textColor = isClaimed ? theme.colors.text : "#d4d4d8";
-  const mutedColor = isClaimed ? theme.colors.textMuted : "#71717a";
-  const surfaceBg = isClaimed ? theme.colors.surface : "rgba(255,255,255,0.03)";
-  const surfaceBorder = isClaimed ? `${theme.colors.accent}25` : "rgba(255,255,255,0.06)";
-  const photoOp = isClaimed ? theme.photoOpacity : 0.6;
+  const accent = isClaimed ? theme.colors.accent : "rgba(255,255,255,0.5)";
+  const textColor = isClaimed ? theme.colors.text : "#fff";
+  const mutedColor = isClaimed ? theme.colors.textMuted : "rgba(255,255,255,0.5)";
 
   return (
-    <div className="min-h-screen" style={{ background: isClaimed ? theme.colors.backgroundGradient : "#0a0a0f" }}>
+    <div style={{ background: "#000" }}>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          HERO PHOTO — top portion with gradient fade
+          HERO — full viewport, photo + overlay + content pinned to bottom
           ═══════════════════════════════════════════════════════════════════ */}
-      <div className="relative" style={{ height: "55vh" }}>
-        {/* Photo background — Google Places photo or theme gradient fallback */}
+      <div className="relative" style={{ height: "100vh", maxWidth: 600, margin: "0 auto" }}>
+
+        {/* Photo — absolute, fills entire viewport */}
         {ghost.photo_url ? (
           <img
             src={ghost.photo_url}
             alt={ghost.name}
             className="absolute inset-0 h-full w-full object-cover"
-            style={{ opacity: photoOp }}
             onError={(e) => { e.currentTarget.style.display = "none"; }}
           />
         ) : (
@@ -128,38 +123,32 @@ export function GhostStorefront({
           />
         )}
 
-        {/* Theme tint (claimed) */}
-        {isClaimed && (
-          <div className="absolute inset-0" style={{ background: theme.colors.backgroundGradient, opacity: 0.2 }} />
-        )}
-
-        {/* Gradient fade to content bg */}
+        {/* Gradient overlay — transparent top → black bottom */}
         <div
           className="absolute inset-0"
           style={{
-            background: isClaimed
-              ? "linear-gradient(to bottom, transparent 30%, rgba(10,10,15,0.5) 60%, rgba(10,10,15,1) 100%)"
-              : "linear-gradient(to bottom, transparent 30%, rgba(10,10,15,0.5) 60%, #0a0a0f 100%)",
+            background: "linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.1) 40%, rgba(0,0,0,0.7) 75%, rgba(0,0,0,0.95) 100%)",
           }}
         />
 
         {/* Sparkles */}
-        {isClaimed && theme.sparkles && <Sparkles color={theme.colors.accent} />}
+        {isClaimed && theme.sparkles && <Sparkles color={accent} />}
 
-        {/* Top bar */}
-        <div className="absolute inset-x-0 top-0 z-20 flex items-center justify-between px-4 pt-[max(env(safe-area-inset-top,14px),14px)]">
+        {/* ── Top bar ── */}
+        <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 pt-5">
           <button
             type="button"
             onClick={() => { if (window.history.length > 1) router.back(); else router.push("/nearby"); }}
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white/80 backdrop-blur-md transition active:scale-95"
+            className="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-white/15 text-white"
+            style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(12px)" }}
           >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
             </svg>
           </button>
           <div className="flex items-center gap-2">
             {!isClaimed && (
-              <span className="rounded-full bg-zinc-800/70 px-2.5 py-1 text-[10px] font-medium text-zinc-400 backdrop-blur-sm">
+              <span className="rounded-full px-2.5 py-1 text-[10px] font-medium text-white/50" style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(12px)" }}>
                 Unclaimed
               </span>
             )}
@@ -169,181 +158,178 @@ export function GhostStorefront({
                 if (navigator.share) navigator.share({ title: ghost.name, url: window.location.href });
                 else navigator.clipboard.writeText(window.location.href);
               }}
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white/80 backdrop-blur-md transition active:scale-95"
+              className="flex h-[38px] w-[38px] items-center justify-center rounded-full border border-white/15 text-white"
+              style={{ background: "rgba(0,0,0,0.4)", backdropFilter: "blur(12px)" }}
             >
-              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
               </svg>
             </button>
           </div>
         </div>
-      </div>
 
-      {/* ═══════════════════════════════════════════════════════════════════
-          CONTENT — normal document flow, NOT absolute/fixed
-          ═══════════════════════════════════════════════════════════════════ */}
-      <div className="mx-auto max-w-[600px] px-6 pb-12 pt-4">
+        {/* ── Content pinned to bottom of hero ── */}
+        <div className="absolute inset-x-0 bottom-0 z-[5] px-6 pb-9">
 
-        {/* Open / Closed pill */}
-        <div className="mb-3">
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide"
-            style={{
-              background: openStatus.isOpen ? `${accent}20` : "rgba(113,113,122,0.2)",
-              color: openStatus.isOpen ? (isClaimed ? accent : "#34d399") : "#71717a",
-            }}
-          >
+          {/* Open / Closed badge */}
+          <div className="mb-4">
             <span
-              className="h-2 w-2 rounded-full"
-              style={{ background: openStatus.isOpen ? (isClaimed ? accent : "#34d399") : "#71717a" }}
-            />
-            {openStatus.isOpen ? "Open now" : "Closed"}
-          </span>
-        </div>
-
-        {/* Business name — 42px */}
-        <h1
-          className="leading-[1.05] tracking-tight"
-          style={{
-            fontSize: "42px",
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            color: isClaimed ? textColor : "rgba(255,255,255,0.85)",
-            overflowWrap: "break-word",
-            wordBreak: "break-word",
-          }}
-        >
-          {ghost.name}
-        </h1>
-
-        {/* Subtitle */}
-        <p className="mt-2 text-sm" style={{ color: mutedColor }}>
-          {ghost.category && <span className="capitalize">{ghost.category}</span>}
-          {city && <>{ghost.category && <span> · </span>}<span>{city}</span></>}
-        </p>
-
-        {/* ── Bottom row: metrics LEFT + Ask button RIGHT ── */}
-        <div className="mt-6 flex items-center justify-between">
-          {/* Left: metrics */}
-          <div className="flex items-center gap-4">
-            {isClaimed ? (
-              <>
-                <div>
-                  <span className="text-lg font-bold" style={{ color: textColor }}>98%</span>
-                  <span className="ml-1 text-[11px]" style={{ color: mutedColor }}>smiles</span>
-                </div>
-                <div className="h-4 w-px" style={{ background: `${mutedColor}40` }} />
-                <div>
-                  <span className="text-lg font-bold" style={{ color: textColor }}>2yr</span>
-                  <span className="ml-1 text-[11px]" style={{ color: mutedColor }}>on Bloc</span>
-                </div>
-              </>
-            ) : (
-              <div className="text-[12px]" style={{ color: mutedColor }}>
-                {ghost.message_count > 0
-                  ? `${ghost.message_count} ${ghost.message_count === 1 ? "person" : "people"} asked`
-                  : "Be the first to ask"}
-              </div>
-            )}
-          </div>
-
-          {/* Right: 90px circular Ask button — normal flow, NOT floating */}
-          <Link
-            href={`/ghost/${ghost.place_id}/chat`}
-            className="flex flex-shrink-0 flex-col items-center justify-center rounded-full transition-transform active:scale-95"
-            style={{
-              width: 90,
-              height: 90,
-              background: isClaimed
-                ? `linear-gradient(135deg, ${accent}, ${accent}bb)`
-                : "linear-gradient(135deg, #3f3f46, #27272a)",
-              boxShadow: isClaimed
-                ? `0 8px 40px ${accent}50, 0 0 80px ${accent}20`
-                : "0 8px 24px rgba(0,0,0,0.4)",
-            }}
-          >
-            <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            <span className="mt-0.5 text-[10px] font-bold uppercase tracking-wider text-white">Ask</span>
-          </Link>
-        </div>
-
-        {/* ── Agent chat preview ── */}
-        <div className="mt-8">
-          <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest" style={{ color: mutedColor }}>
-            Agent
-          </h2>
-          <div
-            className="rounded-2xl border px-5 py-4"
-            style={{ borderColor: surfaceBorder, background: surfaceBg }}
-          >
-            <div className="flex items-center gap-3">
-              <div
-                className="flex h-10 w-10 items-center justify-center rounded-full"
-                style={{ background: isClaimed ? `${accent}25` : "rgba(63,63,70,0.5)" }}
-              >
-                <svg className="h-5 w-5" viewBox="0 0 24 24" fill={isClaimed ? accent : "#71717a"}>
-                  <path d="M13 2L4.09 12.63a1 1 0 00.78 1.62H11l-1 7.75L19.91 11.37a1 1 0 00-.78-1.62H13l1-7.75z" />
-                </svg>
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-semibold" style={{ color: isClaimed ? textColor : "#d4d4d8" }}>
-                  {isClaimed ? `Ask ${firstName}` : "AI Agent"}
-                </p>
-                <p className="text-xs" style={{ color: mutedColor }}>
-                  {isClaimed ? "Replies in ~2 min · 24/7" : "Public data only"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-4 space-y-2">
-              <div
-                className="ml-auto w-fit max-w-[75%] rounded-2xl rounded-br-md px-3.5 py-2 text-[13px]"
-                style={{ background: isClaimed ? `${accent}20` : "rgba(63,63,70,0.3)", color: isClaimed ? textColor : "#d4d4d8" }}
-              >
-                Hi, are you open this weekend?
-              </div>
-              <div
-                className="w-fit max-w-[75%] rounded-2xl rounded-bl-md border px-3.5 py-2 text-[13px]"
-                style={{ background: surfaceBg, borderColor: surfaceBorder, color: isClaimed ? textColor : "#a1a1aa" }}
-              >
-                {openStatus.isOpen
-                  ? "Yes! We're open right now. How can I help you?"
-                  : `We're currently closed${openStatus.nextChange ? `. ${openStatus.nextChange}` : ""}. Feel free to leave a message!`}
-              </div>
-            </div>
-
-            <Link
-              href={`/ghost/${ghost.place_id}/chat`}
-              className="mt-4 flex w-full items-center justify-center rounded-full py-3 text-sm font-semibold text-white transition active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-wide"
               style={{
-                background: isClaimed
-                  ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
-                  : "linear-gradient(135deg, #3f3f46, #27272a)",
+                background: openStatus.isOpen ? "rgba(0,255,135,0.15)" : "rgba(255,255,255,0.1)",
+                color: openStatus.isOpen ? "#00ff87" : "rgba(255,255,255,0.5)",
               }}
             >
-              {isClaimed ? `Ask ${firstName} anything →` : `Ask about ${firstName} →`}
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ background: openStatus.isOpen ? "#00ff87" : "rgba(255,255,255,0.3)" }}
+              />
+              {openStatus.isOpen ? "Open now" : "Closed"}
+            </span>
+          </div>
+
+          {/* Business name — 42px */}
+          <h1
+            style={{
+              fontSize: 42,
+              fontWeight: 800,
+              color: "#fff",
+              lineHeight: 1.0,
+              letterSpacing: -1.5,
+              fontFamily: "'Instrument Serif', Georgia, serif",
+              textShadow: "0 2px 20px rgba(0,0,0,0.5)",
+              overflowWrap: "break-word",
+            }}
+          >
+            {ghost.name}
+          </h1>
+
+          {/* Subtitle: category · city */}
+          <p className="mt-2 text-sm" style={{ color: "rgba(255,255,255,0.6)" }}>
+            {ghost.category && <span className="capitalize">{ghost.category}</span>}
+            {city && <>{ghost.category && <span> · </span>}<span>{city}</span></>}
+          </p>
+
+          {/* ── Bottom row: metrics LEFT + Ask button RIGHT ── */}
+          <div className="mt-7 flex items-center justify-between">
+            {/* Left: metrics */}
+            <div>
+              {isClaimed ? (
+                <div>
+                  <div className="text-[11px]" style={{ color: "rgba(255,255,255,0.35)" }}>Bloc seller since 2023</div>
+                  <div className="mt-1 text-[13px] text-white/80">
+                    😊 312 smiles · 1.5 yr on Bloc
+                  </div>
+                </div>
+              ) : (
+                <div className="text-[13px]" style={{ color: "rgba(255,255,255,0.4)" }}>
+                  {ghost.message_count > 0
+                    ? `${ghost.message_count} ${ghost.message_count === 1 ? "person" : "people"} asked`
+                    : "Be the first to ask"}
+                </div>
+              )}
+            </div>
+
+            {/* Right: circular Ask button — 100px, same row */}
+            <Link
+              href={`/ghost/${ghost.place_id}/chat`}
+              className="flex flex-shrink-0 flex-col items-center justify-center gap-1 rounded-full transition-transform active:scale-95"
+              style={{
+                width: 100,
+                height: 100,
+                background: isClaimed
+                  ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
+                  : "rgba(255,255,255,0.18)",
+                backdropFilter: isClaimed ? undefined : "blur(16px)",
+                border: isClaimed ? "none" : "1.5px solid rgba(255,255,255,0.4)",
+                boxShadow: isClaimed ? `0 8px 40px ${accent}50` : undefined,
+              }}
+            >
+              <span className="text-[32px]">💬</span>
+              <span className="text-[12px] font-semibold text-white">Ask {firstName}</span>
             </Link>
           </div>
         </div>
+      </div>
 
-        {/* ── Own this business (unclaimed only) ── */}
-        {!isClaimed && (
-          <div className="mt-8">
-            <Link
-              href={`/ghost/${ghost.place_id}/claim`}
-              className="flex items-center justify-center rounded-full py-3.5 text-center text-sm font-bold text-white transition active:scale-[0.98]"
-              style={{ background: "linear-gradient(135deg, #7c5ce8, #4d9ef5, #00d4c8)" }}
+      {/* ═══════════════════════════════════════════════════════════════════
+          BELOW FOLD — scrolls below the hero
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="mx-auto max-w-[600px] px-6 pb-24 pt-7" style={{ background: "#000" }}>
+
+        {/* ── Agent chat ── */}
+        <div className="mb-5 text-[11px] uppercase tracking-[0.1em]" style={{ color: "#444" }}>
+          Chat with {firstName}&apos;s agent
+        </div>
+        <div className="mb-5 overflow-hidden rounded-[18px] border border-[#1a1a1a]" style={{ background: "#0a0a0a" }}>
+          {/* Agent header */}
+          <div className="flex items-center gap-3 px-[18px] pb-3 pt-4">
+            <div className="relative h-[38px] w-[38px] flex-shrink-0 overflow-hidden rounded-full bg-zinc-800">
+              {ghost.photo_url && (
+                <img src={ghost.photo_url} alt="" className="h-full w-full object-cover" />
+              )}
+              <div
+                className="absolute bottom-[1px] right-[1px] h-[9px] w-[9px] rounded-full border-2"
+                style={{ background: "#00ff87", borderColor: "#0a0a0a" }}
+              />
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold text-[#e0e0e0]">{firstName}&apos;s Agent</div>
+              <div className="text-[11px]" style={{ color: "rgba(0,255,135,0.47)" }}>● online · replies in ~2 min</div>
+            </div>
+          </div>
+
+          {/* Chat bubbles */}
+          <div className="flex flex-col gap-2 px-[18px] pb-4">
+            <div
+              className="max-w-[88%] rounded-2xl rounded-bl-[4px] px-3.5 py-2.5 text-[12px] leading-relaxed"
+              style={{ background: "#141414", color: "#888" }}
             >
-              Own this business? Get discovered free →
+              {openStatus.isOpen
+                ? <>Hi! How can I help you today? 🎉</>
+                : <>We&apos;re currently closed{openStatus.nextChange ? `. ${openStatus.nextChange}` : ""}. Feel free to leave a message!</>}
+            </div>
+            <div
+              className="ml-auto max-w-[88%] self-end rounded-2xl rounded-br-[4px] px-3.5 py-2.5 text-[12px] leading-relaxed text-white"
+              style={{
+                background: isClaimed
+                  ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
+                  : "linear-gradient(135deg, #3f3f46, #52525b)",
+              }}
+            >
+              Hi, are you open this weekend?
+            </div>
+          </div>
+
+          {/* Ask button */}
+          <Link
+            href={`/ghost/${ghost.place_id}/chat`}
+            className="mx-[18px] mb-4 block rounded-[14px] py-3.5 text-center text-[13px] font-semibold text-white"
+            style={{
+              background: isClaimed
+                ? `linear-gradient(135deg, ${accent}, ${accent}cc)`
+                : "linear-gradient(135deg, #3f3f46, #52525b)",
+            }}
+          >
+            💬 Continue with {firstName}&apos;s agent
+          </Link>
+        </div>
+
+        {/* ── Own this business (unclaimed) ── */}
+        {!isClaimed && (
+          <div className="mt-4 text-center text-[11px]">
+            <span style={{ color: "#222" }}>Own this business? </span>
+            <Link href={`/ghost/${ghost.place_id}/claim`} className="cursor-pointer" style={{ color: "#444" }}>
+              Get discovered free →
             </Link>
           </div>
         )}
 
-        {/* Footer */}
-        <p className="pt-6 text-center text-[11px]" style={{ color: mutedColor }}>
-          {isClaimed ? "Verified business on Bloc" : "Info from Google Places · Not verified by owner"}
-        </p>
+        {isClaimed && (
+          <div className="mt-2 text-center text-[11px]" style={{ color: "#222" }}>
+            Verified business on Bloc
+          </div>
+        )}
       </div>
     </div>
   );
