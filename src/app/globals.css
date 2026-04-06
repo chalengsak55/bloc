@@ -61,4 +61,9 @@ body {
   animation: marquee 8s linear infinite;
 }
 
+@keyframes sparkle-anim {
+  0%, 100% { opacity: 0; transform: scale(0) rotate(0deg); }
+  50%      { opacity: 0.9; transform: scale(1) rotate(180deg); }
+}
+
 .pb-safe { padding-bottom: env(safe-area-inset-bottom, 12px); }
